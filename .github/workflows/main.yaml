@@ -1,0 +1,29 @@
+# Credits: https://github.com/marketplace/actions/build-c-project
+# Credits: https://www.incredibuild.com/blog/using-github-actions-with-your-c-project
+# Credits: https://stackoverflow.com/questions/63606079/how-to-use-clang-10-or-gcc-10-when-building-via-github-actions
+
+# This github workflow will automatically run upon push and is required to pass before merging to main
+# to see if the code is "gradeable"
+
+name: Assignment 1 CI
+
+on: [push]
+
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install GCC
+        run: sudo apt-get install -y build-essential
+      - name: Install libcrypt
+        run: sudo apt-get install -y libcrypt1:i386
+      - name: Compile assignment 1
+        run: make clean && make all
+        working-directory: Assignment-1/framework
+        env:
+          CC: gcc-9
+      - name: Run assignment 1 tests
+        run: sudo make test
+        working-directory: Assignment-1/framework

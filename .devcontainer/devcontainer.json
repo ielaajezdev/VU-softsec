@@ -1,0 +1,17 @@
+{
+    "name": "ielaajezdev-dev",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "llvm-vs-code-extensions.vscode-clangd"
+            ]
+        }
+    },
+    "capAdd": ["SYS_PTRACE"],
+    "securityOpt": [ "seccomp=unconfined" ],
+    "forwardPorts": [],
+    "remoteUser": "root"
+}
