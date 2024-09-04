@@ -7,7 +7,8 @@ RUN apt update && apt upgrade -y
 RUN apt update --fix-missing && apt install -y \
     build-essential \
     clangd \
-    git
+    git \ 
+    python3
 
 # Switch to lower-privilege user
 # RUN useradd -ms /bin/bash developer
