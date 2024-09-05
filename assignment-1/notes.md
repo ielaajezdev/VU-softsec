@@ -17,5 +17,10 @@
     - `(` for C
     - `5` for S
     - `#` for ...
+    - ``i'` for Y
+    - but this is for names/usernames only
+    - for usernames: some are fully caps or mixed case as well
+        - some contain two year numbers as suffix, or a full year
+        
 - uses seemingly random number combinations
 - 

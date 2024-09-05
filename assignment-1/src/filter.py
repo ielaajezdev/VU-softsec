@@ -1,8 +1,8 @@
 import os
 import re
 
-inputdir = './dictionary/gutenberg/'
-outputfile = './unique-gutenberg.txt'
+inputdir = './dictionary/'
+outputfile = './unique-top250.txt'
 
 def main():
     # Open all txt files in the ./dictionary folder and read thei content
@@ -21,7 +21,7 @@ def main():
             lines = f.read().splitlines()
             for line in lines:
                 # split the line by space and check if the word is already set in the unique_words dictionary (lowercase)
-                words = line.split(" ")
+                words = line.split("\t")
                 for word in words:
                     # strip special characters, spaces and numbers
                     #word = word.strip().replace(",", "").replace("?", "").replace("'", "").replace("\"", "").replace(".", "").replace("!", "").replace("-", "")
@@ -36,6 +36,8 @@ def main():
     with open(outputfile, 'w') as f:
         for word in unique_words:
             f.write(word + "\n")
+            # also write all caps
+            f.write(word.upper() + "\n")
 
     
 if __name__ == "__main__":
