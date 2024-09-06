@@ -1,0 +1,1 @@
+dsh974:x:1217:1217:Douglas Smith,,,:/home/dsh974:/bin/ksh

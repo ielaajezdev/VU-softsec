@@ -1,5 +1,6 @@
 import sys
 import subprocess
+import time
 
 def main(script, answers_path):
     print("Grading...")
@@ -11,9 +12,12 @@ def main(script, answers_path):
     with open(answers_path, "r") as f:
         answers = f.read().splitlines()
         
+    start = time.time()
+        
     # Execute the bash script and read from stdout, separate the output by newline
     process = subprocess.Popen(script, stdout=subprocess.PIPE, shell=True)
     output, error = process.communicate()
+    end = time.time()
     output = output.decode("utf-8").splitlines()
     
     # For every output line, check if it matches one of the answers exactly
@@ -24,6 +28,8 @@ def main(script, answers_path):
             correct += 1
         else:
             incorrect += 1
+            print(" INCORRECT: " + line)
+            
             
     print("--- Results ---")
     print("Total answers: " + str(len(answers)))
@@ -33,6 +39,7 @@ def main(script, answers_path):
     print("")
     pct = (correct / len(answers)) * 100
     print("You discovered " + str(pct) + "% of the answers")
+    print("Execution time: " + str(end - start) + " seconds (" + str((end - start) / len(answers)) + " seconds per answer) (" + str((end - start) / 60) + " minutes)")
 
 if __name__ == "__main__":
     # Parse args, the first argument is the shell script to execute, the second argument is the path to the answers file

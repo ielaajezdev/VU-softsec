@@ -9,7 +9,7 @@
 
 #define LINE_LEN 512
 #define DICT_MAX_LINE_LEN 128
-#define DICT_LINE_COUNT (2 << 22)
+#define DICT_LINE_COUNT (2 << 23)
 #define USERS_LINE_LEN 128
 #define USERS_LINE_COUNT 10000
 
@@ -114,11 +114,10 @@ void *hash_dictionary(void *raw_args) {
 // Hashes, checks if a hash matches, prints the required user:plain combo and
 // returns 1 if it was a match
 int try_hash(char *plain, char *salt, char *hash, char *user) {
-  char attempt_hash[256] = {0};
   struct crypt_data datastore[1] = {0};
-  char *res = crypt_r(attempt_hash, salt, datastore);
+  char *res = crypt_r(plain, salt, datastore);
 
-  if (res != NULL && strncmp(attempt_hash, hash, 256) == 0) {
+  if (res != NULL && strncmp(res, hash, 256) == 0) {
     printf("%s:%s\n", user, plain);
     fflush(stdout);
     return 1;
@@ -136,19 +135,13 @@ int try_username_variations(char *src, char *salt, char *hash, char *user) {
     dup[len] = '\0';
   }
 
-  // Try the username in lowercase
-  int i = 0;
-  while (dup[i] != '\0') {
-    dup[i] = tolower(dup[i]);
-    // Keep loopin
-    i++;
-  }
+  // Try as is
   if (try_hash(dup, salt, hash, user) == 1) {
     return 1;
   }
 
   // Try the username in uppercase
-  i = 0;
+  int i = 0;
   while (dup[i] != '\0') {
     dup[i] = toupper(dup[i]);
     // Keep loopin
@@ -158,10 +151,56 @@ int try_username_variations(char *src, char *salt, char *hash, char *user) {
     return 1;
   }
 
+  // Try the username with a single letter lowercased
+  i = 0;
+  while (dup[i] != '\0') {
+    if (i > 0) {
+      dup[i - 1] = toupper(dup[i - 1]);
+    }
+
+    dup[i] = tolower(dup[i]);
+    if (try_hash(dup, salt, hash, user) == 1) {
+      return 1;
+    }
+
+    // Keep loopin
+    i++;
+  }
+
+  // Try the username in lowercase
+  i = 0;
+  while (dup[i] != '\0') {
+    dup[i] = tolower(dup[i]);
+    // Keep loopin
+    i++;
+  }
+  if (try_hash(dup, salt, hash, user) == 1) {
+    return 1;
+  }
+
+  // Try the username with a single letter uppercased
+  i = 0;
+  while (dup[i] != '\0') {
+    if (i > 0) {
+      dup[i - 1] = tolower(dup[i - 1]);
+    }
+
+    dup[i] = toupper(dup[i]);
+    if (try_hash(dup, salt, hash, user) == 1) {
+      return 1;
+    }
+    // Keep loopin
+    i++;
+  }
+
   // Try the username with random 1 to 4-digit numbers appended
-  // for (int j = 0; j < 10000; j++) {
+  // for (int j = 0; j < 100; j++) {
   //   char attempt[len];
   //   sprintf(attempt, "%s%d", dup, j);
+  //   if (try_hash(attempt, salt, hash, user) == 1) {
+  //     return 1;
+  //   }
+  //   sprintf(attempt, "%s19%d", dup, j);
   //   if (try_hash(attempt, salt, hash, user) == 1) {
   //     return 1;
   //   }
@@ -173,7 +212,7 @@ int try_username_variations(char *src, char *salt, char *hash, char *user) {
 void crack_and_print_single(char *user, char *hash, int hash_len, int dict_size,
                             char *dict_hashed, char *dict_plain,
                             char *user_passwd_line, char *salt) {
-  // Try all hashes and print if it is a match
+  // Try all pre-computed hashes from the wordlist first
   for (int j = 0; j < dict_size; j++) {
     char *word = &dict_hashed[DICT_MAX_LINE_LEN * j];
     if (strncmp(word, hash, hash_len) == 0) {
@@ -184,27 +223,29 @@ void crack_and_print_single(char *user, char *hash, int hash_len, int dict_size,
   }
 
   // Get the full name of a user
-  // int full_name_start = nth_occurrence(':', user_passwd_line, 4);
-  // int full_name_end = nth_occurrence(',', user_passwd_line, 1);
-  // int full_name_len = full_name_end - full_name_start;
+  int full_name_start = nth_occurrence(':', user_passwd_line, 4) + 1;
+  int full_name_end = nth_occurrence(',', user_passwd_line, 1);
+  int full_name_len = full_name_end - full_name_start;
 
-  // char full_name[full_name_len];
-  // if (full_name_len > 0) {
-  //   strncpy(full_name, &user_passwd_line[full_name_start], full_name_len);
-  // }
-  // full_name[full_name_len] = '\0';
+  char full_name[full_name_len];
+  if (full_name_len > 0) {
+    strncpy(full_name, &user_passwd_line[full_name_start], full_name_len);
+    full_name[full_name_len] = '\0';
 
-  // // split by space, try variations
-  // char *part = strtok(full_name, " ");
-  // while (part != NULL) {
-  //   int match = try_username_variations(part, salt, hash, user);
-  //   if (match == 1) {
-  //     return;
-  //   }
+    int first_name_end = nth_occurrence(' ', full_name, 1);
+    int first_name_len = first_name_end;
 
-  //   // Keep loopin
-  //   part = strtok(NULL, full_name);
-  // }
+    char first_name[first_name_len + 1];
+    if (first_name_len > 0) {
+      strncpy(first_name, full_name, first_name_len);
+      first_name[first_name_len] = '\0';
+
+      int match = try_username_variations(first_name, salt, hash, user);
+      if (match == 1) {
+        return;
+      }
+    }
+  }
 }
 
 typedef struct {
@@ -224,6 +265,7 @@ void *crack_and_print(void *raw_args) {
   crack_print_args *args = (crack_print_args *)raw_args;
 
   for (int i = args->start; i < args->end; i++) {
+    // The hash that we need to compare to (as in the shadow file line)
     int hash_start =
         nth_occurrence('$', &args->users_shadow[USERS_LINE_LEN * i], 1);
     int hash_end =
@@ -237,7 +279,7 @@ void *crack_and_print(void *raw_args) {
       hash[hash_len] = '\0';
     }
 
-    // The user is always at the start of the line
+    // The user (user id) is always at the start of the line
     int user_end =
         nth_occurrence(':', &args->users_shadow[USERS_LINE_LEN * i], 1);
     int user_len = user_end;
@@ -334,6 +376,15 @@ int main(int argc, char **argv) {
     user_curr++;
   }
 
+  // We don't need the files anymore
+  fclose(pswd);
+  fclose(shdw);
+
+  //
+  // Low-hanging fruit: with the pre-computed dictionaries and basic username
+  // variations, ~40% of the password file can be discovered
+  //
+
   // Split up the plain word dictionary into 4, so that it can be parallelized
   int frac = dict_curr / 4;
 
@@ -395,9 +446,9 @@ int main(int argc, char **argv) {
     pthread_join(user_thread[i], NULL);
   }
 
-  // Clean up
-  fclose(pswd);
-  fclose(shdw);
+  //
+  // Complex: try the 24-letterword variations (should be around ~56%)
+  //
 
   return 0;
 }
