@@ -22,10 +22,12 @@ def main(script, answers_path):
     
     # For every output line, check if it matches one of the answers exactly
     correct = 0
+    correct_content = {}
     incorrect = 0
     for line in output:
         if line in answers:
             correct += 1
+            correct_content[line] = 1
         else:
             incorrect += 1
             print(" INCORRECT: " + line)
@@ -37,6 +39,19 @@ def main(script, answers_path):
     print("- incorrect by you: " + str(incorrect))
     print("- unanswered: " + str(len(answers) - correct - incorrect))
     print("")
+    
+    # Write all unguessed answers to a file
+    unguessed = []
+    for line in answers:
+        if line not in correct_content:
+            unguessed.append(line)
+            
+    unguessed_filename = "unguessed.txt"
+    with open(unguessed_filename, 'w') as f:
+        for line in unguessed:
+            f.write(line + "\n")
+    print("(Wrote all unguessed answers to: " + unguessed_filename + ")")        
+    
     pct = (correct / len(answers)) * 100
     print("You discovered " + str(pct) + "% of the answers")
     print("Execution time: " + str(end - start) + " seconds (" + str((end - start) / len(answers)) + " seconds per answer) (" + str((end - start) / 60) + " minutes)")
