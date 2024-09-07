@@ -20,6 +20,10 @@
     - ``i'` for Y
     - `C-` for G
     - `8` for B
+    - `L|` for U
+    # new 
+    - `|(` for K
+    - `0` for O
     - but this is for names/usernames only
     - for usernames: some are fully caps or mixed case as well
         - some contain two year numbers as suffix, or a full year
