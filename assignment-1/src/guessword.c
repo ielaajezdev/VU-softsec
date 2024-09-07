@@ -643,6 +643,81 @@ void *crack_users_with_dict(void *raw_args) {
   return NULL;
 }
 
+// Generate dynamic hashes for 24-letterwords
+typedef struct {
+  dictionary *dict;
+  selection read_11;
+  selection read_13;
+  selection write;
+} generate_hash_24_args;
+
+void *generate_hash_24_letterwords(void *raw_args) {
+  generate_hash_24_args *args = (generate_hash_24_args *)raw_args;
+  if (args->read_11.end > args->dict->size) {
+    args->read_11.end = args->dict->size;
+  }
+  if (args->read_13.end > args->dict->size) {
+    args->read_13.end = args->dict->size;
+  }
+
+  printf("Generating 24-letterwords from 11words (%d to %d) and 13words (%d to "
+         "%d)\n",
+         args->read_11.start, args->read_11.end, args->read_13.start,
+         args->read_13.end);
+
+  int write_offset = 0;
+  char word[25];
+
+  for (int i = args->read_11.start; i < args->read_11.end; i++) {
+    for (int j = args->read_13.start; j < args->read_13.end; j++) {
+      char *word_11 = args->dict->items[i].plain;
+      char *word_13 = args->dict->items[j].plain;
+
+      // Something is seriously wrong..
+      if (strlen(word_11) != 11) {
+        printf("Expected 11-letter string but received %lu '%s' for thread "
+               "that started from %d to %d\n",
+               strlen(word_11), word_11, args->read_11.start,
+               args->read_11.end);
+        write_offset++;
+        return NULL;
+      } else {
+        strncpy(word, word_11, 11);
+      }
+      if (strlen(word_13) != 13) {
+        printf("Expected 13-letter string but received %lu '%s'\n",
+               strlen(word_13), word_13);
+        write_offset++;
+        continue;
+      } else {
+        strncpy(&word[11], word_13, 13);
+      }
+
+      if (write_offset % 10000 == 0) {
+        printf("Generated %d 24-letterwords from %d total (%fpct)\n",
+               write_offset,
+               (args->read_11.end - args->read_11.start) *
+                   (args->read_13.end - args->read_13.start),
+               100.0 * write_offset /
+                   (float)((args->read_11.end - args->read_11.start) *
+                           (args->read_13.end - args->read_13.start)));
+      }
+
+      word[24] = '\0';
+
+      struct crypt_data datastore[1] = {0};
+      char *res = crypt_r(word, salt, datastore);
+      if (res != NULL) {
+        strcpy(args->dict->items[args->write.start + write_offset].hashed, res);
+        strcpy(args->dict->items[args->write.start + write_offset].plain, word);
+      }
+      write_offset++;
+    }
+  }
+
+  return NULL;
+}
+
 int main(int argc, char **argv) {
   if (argc < 3) {
     printf("Incorrect number of arguments. Provide a passwd_path and "
@@ -854,6 +929,77 @@ int main(int argc, char **argv) {
     }
 
     i++;
+  }
+
+  printf("Found first11: %d-%d and first13: %d-%d '%s'-'%s' '%s'-'%s'\n",
+         words_11.start, words_11.end, words_13.start, words_13.end,
+         dict.items[words_11.start].plain, dict.items[words_11.end].plain,
+         dict.items[words_13.start].plain, dict.items[words_13.end].plain);
+  // return 2;
+
+  selection words_24 = {.start = dict.size, .end = dict.size};
+  if (words_11.start > 0 && words_11.end > words_11.start &&
+      words_13.start > 0 && words_13.end > words_13.start) {
+    // Run the generations in parallel
+    pthread_t generate_24_threads[NR_THREADS];
+    generate_hash_24_args generate_24_thread_args[NR_THREADS];
+    for (int i = 0; i < NR_THREADS; i++) {
+      // Divide all 11-words that need to be enumerated in equal parts
+      int word_11_count = (words_11.end - words_11.start);
+      int frac = (word_11_count / NR_THREADS) + 1;
+      selection read_11 = {
+          .start = words_11.start + (i * frac),
+          .end = words_11.start + ((i + 1) * frac),
+      };
+      if (i == NR_THREADS - 1) {
+        read_11.end = words_11.end;
+      }
+
+      int word_13_count = words_13.end - words_13.start;
+      selection write = {.start = dict.size + (i * frac * word_13_count),
+                         .end = dict.size + ((1 + i) * frac * word_13_count)};
+
+      generate_24_thread_args[i].dict = &dict;
+      generate_24_thread_args[i].read_11 = read_11;
+      generate_24_thread_args[i].read_13 = words_13;
+      generate_24_thread_args[i].write = write;
+
+      pthread_create(&generate_24_threads[i], NULL,
+                     generate_hash_24_letterwords, &generate_24_thread_args[i]);
+    }
+    wait_threads(generate_24_threads, NR_THREADS);
+
+    dict.size +=
+        (words_11.end - words_11.start) * (words_13.end - words_13.start);
+
+    words_24.end = dict.size;
+    printf("Generated and hashed %d 24-letterwords\n",
+           words_24.end - words_24.start);
+
+    // Try the 24-letterwords with the remaining users
+    compress_users(&users);
+    {
+      // Run the comparisions in parallel
+      pthread_t crack_comp_threads[NR_THREADS];
+      crack_user_args crack_comp_args[NR_THREADS];
+      for (int i = 0; i < NR_THREADS; i++) {
+        int frac = (users.size / NR_THREADS) + 1;
+        selection s = {
+            .start = i * frac,
+            .end = (i + 1) * frac,
+        };
+        selection d = {.start = words_24.start, .end = dict.size};
+
+        crack_comp_args[i].users = &users;
+        crack_comp_args[i].user_select = s;
+        crack_comp_args[i].dict = &dict;
+        crack_comp_args[i].dict_select = d;
+
+        pthread_create(&crack_comp_threads[i], NULL, crack_users_with_dict,
+                       &crack_comp_args[i]);
+      }
+      wait_threads(crack_comp_threads, NR_THREADS);
+    }
   }
 
   // Split up the plain word dictionary into 4, so that it can be parallelized
