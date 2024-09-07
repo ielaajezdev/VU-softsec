@@ -1,5 +1,5 @@
-# input_file = "./unique-top250.txt"
-# output_file = "./variations-top250.txt"
+input_file = "./unique-gutenberg.txt"
+output_file = "./variations-gutenberg.txt"
 
 found = {}
 
@@ -10,12 +10,17 @@ def variations(word, varied):
     for i in range(len(word)):
         if word[i] == "a":
             vary = word[:i] + "^" + word[i+1:]
+            vary2 = word[:i] + "4" + word[i+1:]
             if vary != word:
                 if vary not in found:
                     found[vary] = 1
                 variations(vary, True)
+            if vary2 != word:
+                if vary2 not in found:
+                    found[vary2] = 1
+                # variations(vary2, True)    
         if word[i] == "w":
-            vary = word[:i] + "\\/\\" + word[i+1:]
+            vary = word[:i] + "\\/\\/" + word[i+1:]
             if vary != word:
                 if vary not in found:
                     found[vary] = 1
@@ -52,6 +57,24 @@ def variations(word, varied):
                 variations(vary, True)    
         if word[i] == "s":
             vary = word[:i] + "5" + word[i+1:]
+            if vary != word:
+                if vary not in found:
+                    found[vary] = 1
+                # variations(vary, True)    
+        if word[i] == "u":
+            vary = word[:i] + "L|" + word[i+1:]
+            if vary != word:
+                if vary not in found:
+                    found[vary] = 1
+                # variations(vary, True)    
+        if word[i] == "g":
+            vary = word[:i] + "C-" + word[i+1:]
+            if vary != word:
+                if vary not in found:
+                    found[vary] = 1
+                # variations(vary, True)    
+        if word[i] == "b":
+            vary = word[:i] + "8" + word[i+1:]
             if vary != word:
                 if vary not in found:
                     found[vary] = 1
