@@ -193,19 +193,6 @@ int try_username_variations(char *src, char *salt, char *hash, char *user) {
     i++;
   }
 
-  // Try the username with random 1 to 4-digit numbers appended
-  // for (int j = 0; j < 100; j++) {
-  //   char attempt[len];
-  //   sprintf(attempt, "%s%d", dup, j);
-  //   if (try_hash(attempt, salt, hash, user) == 1) {
-  //     return 1;
-  //   }
-  //   sprintf(attempt, "%s19%d", dup, j);
-  //   if (try_hash(attempt, salt, hash, user) == 1) {
-  //     return 1;
-  //   }
-  // }
-
   return 0;
 }
 
@@ -298,6 +285,123 @@ void *crack_and_print(void *raw_args) {
   return NULL;
 }
 
+typedef struct {
+  // The dictionaries to read/write
+  char *dict_plain;
+  char *dict_hashed;
+  // For placing generated words IN the dict
+  int dict_start;
+  int dict_end;
+  // For reading plain words FROM the dict
+  // (combine 11-letterwords with 13-letterwords)
+  int plain_11_start;
+  int plain_11_end;
+  int plain_13_start;
+  int plain_13_end;
+  // Always needed
+  char *salt;
+} generate_dict_args;
+
+// Cannot be preloaded due to size constraints
+void *generate_24_letter_dictionary(void *raw_args) {
+  generate_dict_args *args = (generate_dict_args *)raw_args;
+
+  char plain_word[25];
+  int curr_index = 0;
+
+  // Pick an 11 and 13-letteword, merge them and store the hashed result
+  for (int i = args->plain_11_start; i < args->plain_11_end; i++) {
+    for (int j = args->plain_13_start; j < args->plain_13_end; j++) {
+      // Merge the words
+      strncpy(plain_word, &args->dict_plain[DICT_MAX_LINE_LEN * i], 11);
+      strncpy(&plain_word[11], &args->dict_plain[DICT_MAX_LINE_LEN * j], 13);
+      plain_word[24] = '\0';
+
+      // Convert to lowercase
+      // todo: check why uppercase is selected
+      for (int k = 0; k < 25; k++) {
+        plain_word[k] = tolower(plain_word[k]);
+      }
+
+      int dict_index = args->dict_start + curr_index;
+
+      struct crypt_data datastore[1] = {0};
+      char *res = crypt_r(plain_word, args->salt, datastore);
+      // copy hash
+      strncpy(&args->dict_hashed[DICT_MAX_LINE_LEN * dict_index], res,
+              DICT_MAX_LINE_LEN - 1);
+      // copy plain
+      strncpy(&args->dict_plain[DICT_MAX_LINE_LEN * dict_index], plain_word,
+              25);
+
+      curr_index++;
+    }
+  }
+
+  return NULL;
+}
+
+void compare_and_print_single(char *user, char *hash, char *dict_hashed,
+                              char *dict_plain, int dict_start, int dict_end) {
+  for (int i = dict_start; i < dict_end; i++) {
+    // Get the computed hash
+    char *try_hash = &dict_hashed[DICT_MAX_LINE_LEN * i];
+
+    if (strcmp(try_hash, hash) == 0) {
+      printf("%s:%s\n", user, &dict_plain[DICT_MAX_LINE_LEN * i]);
+      fflush(stdout);
+      return;
+    }
+  }
+}
+
+typedef struct {
+  char *users_shadow;
+  int users_start;
+  int users_end;
+  // The dictionary that can be accessed
+  char *dict_hashed;
+  char *dict_plain;
+  int dict_start;
+  int dict_end;
+} compare_and_print_args;
+
+void *compare_and_print(void *raw_args) {
+  compare_and_print_args *args = (compare_and_print_args *)raw_args;
+
+  for (int i = args->users_start; i < args->users_end; i++) {
+    // The hash that we need to compare to (as in the shadow file line)
+    int hash_start =
+        nth_occurrence('$', &args->users_shadow[USERS_LINE_LEN * i], 1);
+    int hash_end =
+        nth_occurrence(':', &args->users_shadow[USERS_LINE_LEN * i], 2);
+    int hash_len = hash_end - hash_start;
+
+    char hash[hash_len + 1];
+    if (hash_len > 0) {
+      strncpy(hash, &args->users_shadow[USERS_LINE_LEN * i + hash_start],
+              hash_len);
+      hash[hash_len] = '\0';
+    }
+
+    // The user (user id) is always at the start of the line
+    int user_end =
+        nth_occurrence(':', &args->users_shadow[USERS_LINE_LEN * i], 1);
+    int user_len = user_end;
+
+    char user[user_len + 1];
+    if (user_len > 0) {
+      strncpy(user, &args->users_shadow[USERS_LINE_LEN * i], user_len);
+      user[user_len] = '\0';
+    }
+
+    compare_and_print_single(user, hash, args->dict_hashed, args->dict_plain,
+                             args->dict_start, args->dict_end);
+  }
+
+  return NULL;
+}
+
 int main(int argc, char **argv) {
   if (argc < 3) {
     printf("Incorrect number of arguments. Provide a passwd_path and "
@@ -315,10 +419,12 @@ int main(int argc, char **argv) {
 
   // Load dictionaries
   dict_curr = load_dictionary("./unique-gutenberg.txt", dict_plain, dict_curr);
+  int unique_gutenberg_end = dict_curr;
   dict_curr = load_dictionary("./unique-top250.txt", dict_plain, dict_curr);
-  dict_curr =
-      load_dictionary("./variations-gutenberg.txt", dict_plain, dict_curr);
-  dict_curr = load_dictionary("./variations-top250.txt", dict_plain, dict_curr);
+  // dict_curr =
+  //     load_dictionary("./variations-gutenberg.txt", dict_plain, dict_curr);
+  // dict_curr = load_dictionary("./variations-top250.txt", dict_plain,
+  // dict_curr);
   // ...
 
   if (dict_curr <= 0) {
@@ -449,6 +555,115 @@ int main(int argc, char **argv) {
   //
   // Complex: try the 24-letterword variations (should be around ~56%)
   //
+
+  // Find where the 11 and 13 letterwords sections start in the gutenberg unique
+  // dict
+  int gutenberg_11_start = -1;
+  int gutenberg_11_end = -1;
+  int gutenberg_13_start = -1;
+  int gutenberg_13_end = -1;
+
+  for (int i = 0; i < unique_gutenberg_end; i++) {
+    int len = strlen(&dict_plain[DICT_MAX_LINE_LEN * i]);
+    if (len == 11) {
+      gutenberg_11_start = i;
+    } else if (len == 12) {
+      gutenberg_11_end = i;
+    } else if (len == 13) {
+      gutenberg_13_start = i;
+    } else if (len == 14) {
+      gutenberg_13_end = i;
+    }
+  }
+
+  if (gutenberg_11_start > 0 && gutenberg_11_end > 0 &&
+      gutenberg_13_start > 0 && gutenberg_13_end > 0) {
+    int word_11_count = gutenberg_11_end - gutenberg_11_start;
+    int word_13_count = gutenberg_13_end - gutenberg_13_start;
+
+    // Split the 11 letters up in 4 equal partitions
+    frac = (word_11_count / 4) + 1;
+
+    // Create 4 threads and wait for them to finish
+    pthread_t generate_thread[4];
+    generate_dict_args generate_args[4];
+
+    // Each thread gets a block of memory from the total dict that they can
+    // insert into, based on how many variations there are
+    generate_args[0].plain_11_start = 0;
+    generate_args[0].plain_11_end = frac;
+    generate_args[0].dict_start = dict_curr;
+    generate_args[0].dict_end = frac * word_13_count;
+
+    generate_args[1].plain_11_start = frac;
+    generate_args[1].plain_11_end = frac * 2;
+    generate_args[1].dict_start = frac * word_13_count;
+    generate_args[1].dict_end = frac * 2 * word_13_count;
+
+    generate_args[2].plain_11_start = frac * 2;
+    generate_args[2].plain_11_end = frac * 3;
+    generate_args[2].dict_start = frac * 2 * word_13_count;
+    generate_args[2].dict_end = frac * 3 * word_13_count;
+
+    generate_args[3].plain_11_start = frac * 3;
+    generate_args[3].plain_11_end = frac * 4;
+    generate_args[3].dict_start = frac * 3 * word_13_count;
+    generate_args[3].dict_end = frac * 4 * word_13_count;
+
+    for (int i = 0; i < 4; i++) {
+      generate_args[i].dict_plain = dict_plain;
+      generate_args[i].dict_hashed = dict_hashed;
+      generate_args[i].salt = salt;
+
+      pthread_create(&generate_thread[i], NULL, generate_24_letter_dictionary,
+                     &generate_args[i]);
+    }
+
+    // Wait for all threads to finish
+    for (int i = 0; i < 4; i++) {
+      pthread_join(generate_thread[i], NULL);
+    }
+
+    int dict_24_word_start = dict_curr;
+    dict_curr += word_11_count * word_13_count;
+
+    printf("Generated all %d 24-letter words!\n",
+           dict_curr - dict_24_word_start);
+
+    // Now create 4 threads for cracking again
+    pthread_t compare_threads[4];
+    compare_and_print_args compare_args[4];
+
+    // Each thread checks 1/4th of the users
+    frac = user_curr / 4;
+    compare_args[0].users_start = 0;
+    compare_args[0].users_end = frac;
+    compare_args[1].users_start = frac;
+    compare_args[1].users_end = frac * 2;
+    compare_args[2].users_start = frac * 2;
+    compare_args[2].users_end = frac * 3;
+    compare_args[3].users_start = frac * 3;
+    compare_args[3].users_end = user_curr;
+
+    for (int i = 0; i < 4; i++) {
+      compare_args[i].dict_hashed = dict_hashed;
+      compare_args[i].dict_plain = dict_plain;
+      compare_args[i].dict_start = dict_24_word_start;
+      compare_args[i].dict_end = dict_curr;
+      compare_args[i].users_shadow = user_shdw;
+
+      pthread_create(&compare_threads[i], NULL, compare_and_print,
+                     &compare_args[i]);
+    }
+
+    // Wait for them all to finish
+    for (int i = 0; i < 4; i++) {
+      pthread_join(compare_threads[i], NULL);
+    }
+
+  } else {
+    printf("Failed dynamic gutenberg\n");
+  }
 
   return 0;
 }
