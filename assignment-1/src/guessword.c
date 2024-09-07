@@ -831,6 +831,31 @@ int main(int argc, char **argv) {
   total_found = size_before - size_now;
   printf("(cracked %d with this)\n", total_found);
 
+  //
+  // Crack part 3: try all 24 (11 + 13)-letterwords
+  //
+
+  selection words_11 = {.start = -1, .end = -1};
+  selection words_13 = {.start = -1, .end = -1};
+
+  // gutenberg unique is loaded first and is sorted in increasing length, so
+  // take the sections where 11 and 13 letter words start
+  int i = 0;
+  while (words_13.end < 0 && i < dict.size) {
+    int len = strlen(dict.items[i].plain);
+    if (len == 11 && words_11.start < 0) {
+      words_11.start = i;
+    } else if (len == 12 && words_11.end < 0) {
+      words_11.end = i;
+    } else if (len == 13 && words_13.start < 0) {
+      words_13.start = i;
+    } else if (len == 14 && words_13.end < 0) {
+      words_13.end = i;
+    }
+
+    i++;
+  }
+
   // Split up the plain word dictionary into 4, so that it can be parallelized
   // int frac = dict_curr / 4;
 

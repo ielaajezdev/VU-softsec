@@ -23,7 +23,7 @@ def main():
                 # split the line by space and check if the word is already set in the unique_words dictionary (lowercase)
                 words = line.split(" ")
                 for word in words:
-                    # strip special characters, spaces and numbers
+                    # strip special characters and spaces
                     #word = word.strip().replace(",", "").replace("?", "").replace("'", "").replace("\"", "").replace(".", "").replace("!", "").replace("-", "")
                     word = re.sub(r'[^a-zA-Z0-9]', '', word)
                     word = word.strip()
