@@ -778,7 +778,7 @@ int main(int argc, char **argv) {
   if (res > 0) {
     res = load_dictionary("./variations-top250.txt", &dict);
   }
-  // ...
+  // ..
 
   if (res <= 0) {
     printf("Failed to load dictionaries... %d\n", res);
