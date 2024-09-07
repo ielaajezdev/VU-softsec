@@ -99,6 +99,21 @@ int nth_occurrence(char c, char *str, int n) {
   return -1;
 }
 
+int count_occurence(char c, char *str) {
+  int i = 0;
+  int count = 0;
+
+  while (str[i] != '\0') {
+    if (str[i] == c) {
+      count++;
+    }
+
+    i++;
+  }
+
+  return count;
+}
+
 // Reads a plain file from path and then puts all lines in the dictionary,
 // returning the amount of lines inserted or -1 on error
 int load_dictionary(char *path, dictionary *dict) {
@@ -541,62 +556,55 @@ typedef struct {
   selection user_select;
 } crack_user_args;
 
-void crack_user_basic_username(user_item *user) {
-  // Use the first name of the user for variations
-  int first_name_end = nth_occurrence(' ', user->full_name, 1);
-  int first_name_len = first_name_end;
-  if (first_name_len <= 0) {
-    return;
-  }
-
-  char first_name[first_name_len + 1];
-  strncpy(first_name, user->full_name, first_name_len);
-  first_name[first_name_len] = '\0';
+int crack_user_basic_username(user_item *user, char *name) {
+  int name_len = strlen(name);
 
   // Try as is
-  if (crack_compare_and_print(user, first_name) == 1) {
-    return;
+  if (crack_compare_and_print(user, name) == 1) {
+    return 1;
   }
 
   // Try in uppercase
-  for (int i = 0; i < first_name_len; i++) {
-    first_name[i] = toupper(first_name[i]);
+  for (int i = 0; i < name_len; i++) {
+    name[i] = toupper(name[i]);
   }
-  if (crack_compare_and_print(user, first_name) == 1) {
-    return;
+  if (crack_compare_and_print(user, name) == 1) {
+    return 1;
   }
 
   // Try with a single letter lowercased
-  for (int i = 0; i < first_name_len; i++) {
+  for (int i = 0; i < name_len; i++) {
     if (i > 0) {
-      first_name[i - 1] = toupper(first_name[i - 1]);
+      name[i - 1] = toupper(name[i - 1]);
     }
 
-    first_name[i] = tolower(first_name[i]);
-    if (crack_compare_and_print(user, first_name) == 1) {
-      return;
+    name[i] = tolower(name[i]);
+    if (crack_compare_and_print(user, name) == 1) {
+      return 1;
     }
   }
 
   // Try the username in lowercase
-  for (int i = 0; i < first_name_len; i++) {
-    first_name[i] = tolower(first_name[i]);
+  for (int i = 0; i < name_len; i++) {
+    name[i] = tolower(name[i]);
   }
-  if (crack_compare_and_print(user, first_name) == 1) {
-    return;
+  if (crack_compare_and_print(user, name) == 1) {
+    return 1;
   }
 
   // Try the username with a single letter uppercased
-  for (int i = 0; i < first_name_len; i++) {
+  for (int i = 0; i < name_len; i++) {
     if (i > 0) {
-      first_name[i - 1] = tolower(first_name[i - 1]);
+      name[i - 1] = tolower(name[i - 1]);
     }
 
-    first_name[i] = toupper(first_name[i]);
-    if (crack_compare_and_print(user, first_name) == 1) {
-      return;
+    name[i] = toupper(name[i]);
+    if (crack_compare_and_print(user, name) == 1) {
+      return 1;
     }
   }
+
+  return 0;
 }
 
 // Attempt cracking by basic username variations in a selection
@@ -609,7 +617,54 @@ void *crack_users_basic_username(void *raw_args) {
          args->user_select.start, args->user_select.end);
 
   for (int i = args->user_select.start; i < args->user_select.end; i++) {
-    crack_user_basic_username(&args->users->items[i]);
+    user_item *user = &args->users->items[i];
+
+    // First try with first name
+    int first_name_end = nth_occurrence(' ', user->full_name, 1);
+    int first_name_len = first_name_end;
+    if (first_name_len > 0) {
+      char first_name[first_name_len + 1];
+      strncpy(first_name, user->full_name, first_name_len);
+      first_name[first_name_len] = '\0';
+
+      if (crack_user_basic_username(user, first_name) == 1) {
+        continue;
+      }
+    }
+
+    // See how many spaces there are, indicates last name/middle name
+    int spaces = count_occurence(' ', user->full_name);
+
+    // Get the last name
+    // Then (if uncracked still and middle name present, try with middle name)
+    int last_name_start = nth_occurrence(' ', user->full_name, spaces) + 1;
+    int last_name_end = strlen(user->full_name);
+    int last_name_len = last_name_end - last_name_start;
+    if (last_name_len > 0) {
+      char last_name[last_name_len + 1];
+      strncpy(last_name, &user->full_name[last_name_start], last_name_len);
+      last_name[last_name_len] = '\0';
+
+      if (crack_user_basic_username(user, last_name) == 1) {
+        continue;
+      }
+    }
+
+    // Then (if uncracked still and middle name present, try with middle
+    // name)
+    if (spaces == 2) {
+      int middle_name_start = first_name_end + 1;
+      int middle_name_end = nth_occurrence(' ', user->full_name, 2);
+      int middle_name_len = middle_name_end - middle_name_start;
+      if (middle_name_len > 0) {
+        char middle_name[middle_name_len + 1];
+        strncpy(middle_name, &user->full_name[middle_name_start],
+                middle_name_len);
+        middle_name[middle_name_len] = '\0';
+
+        crack_user_basic_username(user, middle_name);
+      }
+    }
   }
 
   return NULL;
@@ -1001,6 +1056,11 @@ int main(int argc, char **argv) {
       wait_threads(crack_comp_threads, NR_THREADS);
     }
   }
+
+  //
+  // Crack part 4: try more advanced username variations (with replacements,
+  // years of birth)
+  //
 
   // Split up the plain word dictionary into 4, so that it can be parallelized
   // int frac = dict_curr / 4;
