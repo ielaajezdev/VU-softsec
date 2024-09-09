@@ -2,6 +2,7 @@
 #include <crypt.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +27,10 @@
 
 // Ugly global, but all the same for every file of users
 char salt[MAX_SALT_SIZE];
+
+// Crash program after 6M has been reached
+atomic_int crack_count = 0;
+#define MAX_CRACK_COUNT 24000000
 
 //
 // Data structures used to keep track of dictionaries and users
@@ -189,6 +194,11 @@ void *hash_dict(void *raw_args) {
     struct crypt_data datastore = {0};
     char *res = crypt_r(args->dict->items[i].plain, salt, &datastore);
     strncpy(args->dict->items[i].hashed, res, MAX_LINE_LEN - 1);
+    crack_count++;
+    if (crack_count > MAX_CRACK_COUNT) {
+      printf("Max crack reached");
+      exit(2);
+    }
 
     if (a % 100000 == 0) {
       printf("Hashed %d words\n", a);
@@ -221,6 +231,11 @@ int compare_and_print(user_item *user, char *plain, char *hash) {
 int crack_compare_and_print(user_item *user, char *plain) {
   struct crypt_data datastore[1] = {0};
   char *res = crypt_r(plain, salt, datastore);
+  crack_count++;
+  if (crack_count > MAX_CRACK_COUNT) {
+    printf("Max crack reached");
+    exit(2);
+  }
   if (res == NULL) {
     return 0;
   }
@@ -762,6 +777,11 @@ void *generate_hash_24_letterwords(void *raw_args) {
 
       struct crypt_data datastore[1] = {0};
       char *res = crypt_r(word, salt, datastore);
+      crack_count++;
+      if (crack_count > MAX_CRACK_COUNT) {
+        printf("Max crack reached");
+        exit(2);
+      }
       if (res != NULL) {
         strcpy(args->dict->items[args->write.start + write_offset].hashed, res);
         strcpy(args->dict->items[args->write.start + write_offset].plain, word);
@@ -985,12 +1005,6 @@ int main(int argc, char **argv) {
 
     i++;
   }
-
-  printf("Found first11: %d-%d and first13: %d-%d '%s'-'%s' '%s'-'%s'\n",
-         words_11.start, words_11.end, words_13.start, words_13.end,
-         dict.items[words_11.start].plain, dict.items[words_11.end].plain,
-         dict.items[words_13.start].plain, dict.items[words_13.end].plain);
-  // return 2;
 
   selection words_24 = {.start = dict.size, .end = dict.size};
   if (words_11.start > 0 && words_11.end > words_11.start &&

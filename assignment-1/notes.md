@@ -22,12 +22,18 @@
     - `8` for B
     - `L|` for U
     # new 
+    - `|*` for P
     - `|(` for K
     - `0` for O
+    - `(v)` for M
+    
     - but this is for names/usernames only
     - for usernames: some are fully caps or mixed case as well
         - some contain two year numbers as suffix, or a full year
         
+- words also suffixed with `zorz` (usernames as well)
+    - same for `xor`
+
 - uses seemingly random number combinations
 - Also second name sometimes used
 - Also multiple letters of a name lowercased/uppercased

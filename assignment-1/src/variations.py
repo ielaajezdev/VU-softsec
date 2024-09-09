@@ -1,5 +1,5 @@
-input_file = "./unique-gutenberg.txt"
-output_file = "./variations-gutenberg.txt"
+input_file = "./unique-top250.txt"
+output_file = "./variations-top250.txt"
 
 found = {}
 
@@ -103,6 +103,8 @@ def main():
             
             for word in words:
                 variations(word, False)        
+                found[word + 'xor'] = 1
+                found[word + 'zorz'] = 1
                 
     print("Found Variations: " + str(len(found)))            
     
