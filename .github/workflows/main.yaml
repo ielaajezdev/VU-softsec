@@ -28,7 +28,7 @@ jobs:
         working-directory: assignment-1
       - name: Compile assignment 1
         run: |
-          output=$(make build 2>&1 > /dev/null) || true
+          output=$(gcc -O3 -Wall -Wextra -pthread -o guessword guessword.c -lcrypt -lpthread 2>&1 > /dev/null) || true
           if [ -n "$output" ]; then
             echo "Error: Program output to stderr"
             echo "$output"
