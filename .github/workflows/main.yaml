@@ -25,7 +25,7 @@ jobs:
         run: unzip assignment-1/asg1.zip -d assignment-1/submission
       - name: Run sanity check on assignment 1
         run: python3 sanity_check.py asg1.zip
-        working-directory: assignment-1/submission
+        working-directory: assignment-1
       - name: Compile assignment 1
         run: |
           output=$(make build 2>&1 > /dev/null) || true
