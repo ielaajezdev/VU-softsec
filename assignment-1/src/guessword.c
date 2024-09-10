@@ -179,8 +179,8 @@ void *hash_dict(void *raw_args) {
   if (args->select.end > args->dict->size) {
     args->select.end = args->dict->size;
   }
-  printf("Started hashing from %d to %d\n", args->select.start,
-         args->select.end);
+  // printf("Started hashing from %d to %d\n", args->select.start,
+  //        args->select.end);
 
   int a = 0;
   for (int i = args->select.start; i < args->select.end; i++) {
@@ -189,12 +189,12 @@ void *hash_dict(void *raw_args) {
     strncpy(args->dict->items[i].hashed, res, MAX_LINE_LEN - 1);
     crack_count++;
     if (crack_count > MAX_CRACK_COUNT) {
-      printf("Max crack reached");
+      // printf("Max crack reached");
       exit(2);
     }
 
     if (a % 100000 == 0) {
-      printf("Hashed %d words\n", a);
+      // printf("Hashed %d words\n", a);
     }
     a++;
   }
@@ -226,7 +226,7 @@ int crack_compare_and_print(user_item *user, char *plain) {
   char *res = crypt_r(plain, salt, datastore);
   crack_count++;
   if (crack_count > MAX_CRACK_COUNT) {
-    printf("Max crack reached");
+    // printf("Max crack reached");
     exit(2);
   }
   if (res == NULL) {
@@ -355,7 +355,6 @@ int permutate(user_item *user, char *str, int start, int level) {
       }
 
       // Try to crack first
-      printf("Trying perm %s\n", dup);
       if (crack_compare_and_print(user, dup) == 1) {
         return 1;
       }
@@ -420,8 +419,8 @@ void *crack_users_advanced_username(void *raw_args) {
   if (args->user_select.end > args->users->size) {
     args->user_select.end = args->users->size;
   }
-  printf("Starting cracking advanced usernames from %d to %d\n",
-         args->user_select.start, args->user_select.end);
+  // printf("Starting cracking advanced usernames from %d to %d\n",
+  //        args->user_select.start, args->user_select.end);
 
   for (int i = args->user_select.start; i < args->user_select.end; i++) {
     user_item *user = &args->users->items[i];
@@ -483,8 +482,8 @@ void *crack_users_basic_username(void *raw_args) {
   if (args->user_select.end > args->users->size) {
     args->user_select.end = args->users->size;
   }
-  printf("Starting cracking basic usernames from %d to %d\n",
-         args->user_select.start, args->user_select.end);
+  // printf("Starting cracking basic usernames from %d to %d\n",
+  //        args->user_select.start, args->user_select.end);
 
   for (int i = args->user_select.start; i < args->user_select.end; i++) {
     user_item *user = &args->users->items[i];
@@ -549,10 +548,11 @@ void *crack_users_with_dict(void *raw_args) {
   if (args->dict_select.end > args->dict->size) {
     args->dict_select.end = args->dict->size;
   }
-  printf("Starting cracking usernames with dict from %d to %d in dict from %d "
-         "to %d\n",
-         args->user_select.start, args->user_select.end,
-         args->dict_select.start, args->dict_select.end);
+  // printf("Starting cracking usernames with dict from %d to %d in dict from %d
+  // "
+  //        "to %d\n",
+  //        args->user_select.start, args->user_select.end,
+  //        args->dict_select.start, args->dict_select.end);
 
   for (int i = args->user_select.start; i < args->user_select.end; i++) {
     for (int j = args->dict_select.start; j < args->dict_select.end; j++) {
@@ -585,10 +585,11 @@ void *generate_hash_24_letterwords(void *raw_args) {
     args->read_13.end = args->dict->size;
   }
 
-  printf("Generating 24-letterwords from 11words (%d to %d) and 13words (%d to "
-         "%d)\n",
-         args->read_11.start, args->read_11.end, args->read_13.start,
-         args->read_13.end);
+  // printf("Generating 24-letterwords from 11words (%d to %d) and 13words (%d
+  // to "
+  //        "%d)\n",
+  //        args->read_11.start, args->read_11.end, args->read_13.start,
+  //        args->read_13.end);
 
   int write_offset = 0;
   char word[25];
@@ -600,33 +601,33 @@ void *generate_hash_24_letterwords(void *raw_args) {
 
       // Something is seriously wrong..
       if (strlen(word_11) != 11) {
-        printf("Expected 11-letter string but received %lu '%s' for thread "
-               "that started from %d to %d\n",
-               strlen(word_11), word_11, args->read_11.start,
-               args->read_11.end);
+        // printf("Expected 11-letter string but received %lu '%s' for thread "
+        //        "that started from %d to %d\n",
+        //        strlen(word_11), word_11, args->read_11.start,
+        //        args->read_11.end);
         write_offset++;
         return NULL;
       } else {
         strncpy(word, word_11, 11);
       }
       if (strlen(word_13) != 13) {
-        printf("Expected 13-letter string but received %lu '%s'\n",
-               strlen(word_13), word_13);
+        // printf("Expected 13-letter string but received %lu '%s'\n",
+        //        strlen(word_13), word_13);
         write_offset++;
         continue;
       } else {
         strncpy(&word[11], word_13, 13);
       }
 
-      if (write_offset % 10000 == 0) {
-        printf("Generated %d 24-letterwords from %d total (%fpct)\n",
-               write_offset,
-               (args->read_11.end - args->read_11.start) *
-                   (args->read_13.end - args->read_13.start),
-               100.0 * write_offset /
-                   (float)((args->read_11.end - args->read_11.start) *
-                           (args->read_13.end - args->read_13.start)));
-      }
+      // if (write_offset % 10000 == 0) {
+      // printf("Generated %d 24-letterwords from %d total (%fpct)\n",
+      //        write_offset,
+      //        (args->read_11.end - args->read_11.start) *
+      //            (args->read_13.end - args->read_13.start),
+      //        100.0 * write_offset /
+      //            (float)((args->read_11.end - args->read_11.start) *
+      //                    (args->read_13.end - args->read_13.start)));
+      // }
 
       word[24] = '\0';
 
@@ -634,7 +635,7 @@ void *generate_hash_24_letterwords(void *raw_args) {
       char *res = crypt_r(word, salt, datastore);
       crack_count++;
       if (crack_count > MAX_CRACK_COUNT) {
-        printf("Max crack reached");
+        // printf("Max crack reached");
         exit(2);
       }
       if (res != NULL) {
@@ -731,7 +732,7 @@ int main(int argc, char **argv) {
   // Crack part 1: low-hanging fruit, basic username variations
   //
 
-  printf("Attempting to run basic variations\n");
+  // printf("Attempting to run basic variations\n");
 
   {
     // Run the username variations in parallel
@@ -751,12 +752,7 @@ int main(int argc, char **argv) {
     }
     wait_threads(crack_basic_threads, NR_THREADS);
   }
-  printf("All basic variations complete\n");
-  int size_before = users.size;
   compress_users(&users);
-  int size_now = users.size;
-  int total_found = size_before - size_now;
-  printf("(cracked %d with this)\n", total_found);
 
   //
   // Crack part 2: use precomputer non-dynamic dictionaries with basic
@@ -809,7 +805,6 @@ int main(int argc, char **argv) {
       pthread_create(&hash_thread[i], NULL, hash_dict, &hash_thread_args[i]);
     }
     wait_threads(hash_thread, NR_THREADS);
-    printf("All hashing complete\n");
   }
   {
     // Run the comparisions in parallel
@@ -833,11 +828,7 @@ int main(int argc, char **argv) {
     }
     wait_threads(crack_comp_threads, NR_THREADS);
   }
-  size_before = users.size;
   compress_users(&users);
-  size_now = users.size;
-  total_found = size_before - size_now;
-  printf("(cracked %d with this)\n", total_found);
 
   //
   // Crack part 3: try all 24 (11 + 13)-letterwords
@@ -898,10 +889,7 @@ int main(int argc, char **argv) {
 
     dict.size +=
         (words_11.end - words_11.start) * (words_13.end - words_13.start);
-
     words_24.end = dict.size;
-    printf("Generated and hashed %d 24-letterwords\n",
-           words_24.end - words_24.start);
 
     // Try the 24-letterwords with the remaining users
     compress_users(&users);
@@ -934,8 +922,6 @@ int main(int argc, char **argv) {
   // years of birth)
   //
 
-  printf("Attempting to run advanced variations\n");
-
   {
     // Run the username variations in parallel
     pthread_t crack_basic_threads[NR_THREADS];
@@ -955,12 +941,6 @@ int main(int argc, char **argv) {
     }
     wait_threads(crack_basic_threads, NR_THREADS);
   }
-  printf("All advanced variations complete\n");
-  size_before = users.size;
-  compress_users(&users);
-  size_now = users.size;
-  total_found = size_before - size_now;
-  printf("(cracked %d with this)\n", total_found);
 
   return 0;
 }
