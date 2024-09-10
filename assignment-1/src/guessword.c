@@ -21,9 +21,9 @@
 // Ugly global, but all the same for every file of users
 char salt[MAX_SALT_SIZE];
 
-// Crash program after 6M has been reached
-atomic_int crack_count = 0;
-#define MAX_CRACK_COUNT 24000000
+// Crash program after 24M has been reached
+// atomic_int crack_count = 0;
+// #define MAX_CRACK_COUNT 24000000
 
 //
 // Data structures used to keep track of dictionaries and users
@@ -40,7 +40,6 @@ typedef struct {
 } dictionary;
 
 typedef struct {
-  // the abc123 combo
   char username[MAX_USER_ITEM_SIZE];
   char full_name[MAX_USER_ITEM_SIZE];
   char hash[MAX_USER_ITEM_SIZE];
@@ -187,15 +186,7 @@ void *hash_dict(void *raw_args) {
     struct crypt_data datastore = {0};
     char *res = crypt_r(args->dict->items[i].plain, salt, &datastore);
     strncpy(args->dict->items[i].hashed, res, MAX_LINE_LEN - 1);
-    crack_count++;
-    if (crack_count > MAX_CRACK_COUNT) {
-      // printf("Max crack reached");
-      exit(2);
-    }
 
-    if (a % 100000 == 0) {
-      // printf("Hashed %d words\n", a);
-    }
     a++;
   }
 
@@ -224,11 +215,6 @@ int compare_and_print(user_item *user, char *plain, char *hash) {
 int crack_compare_and_print(user_item *user, char *plain) {
   struct crypt_data datastore[1] = {0};
   char *res = crypt_r(plain, salt, datastore);
-  crack_count++;
-  if (crack_count > MAX_CRACK_COUNT) {
-    // printf("Max crack reached");
-    exit(2);
-  }
   if (res == NULL) {
     return 0;
   }
@@ -633,11 +619,6 @@ void *generate_hash_24_letterwords(void *raw_args) {
 
       struct crypt_data datastore[1] = {0};
       char *res = crypt_r(word, salt, datastore);
-      crack_count++;
-      if (crack_count > MAX_CRACK_COUNT) {
-        // printf("Max crack reached");
-        exit(2);
-      }
       if (res != NULL) {
         strcpy(args->dict->items[args->write.start + write_offset].hashed, res);
         strcpy(args->dict->items[args->write.start + write_offset].plain, word);
@@ -779,9 +760,9 @@ int main(int argc, char **argv) {
   if (res > 0) {
     res = load_dictionary("./variations-top250.txt", &dict);
   }
-  // if (res > 0) {
-  //   res = load_dictionary("./unique-plain.txt", &dict);
-  // }
+  if (res > 0) {
+    res = load_dictionary("./unique-plain.txt", &dict);
+  }
   // ..
 
   if (res <= 0) {
@@ -941,6 +922,9 @@ int main(int argc, char **argv) {
     }
     wait_threads(crack_basic_threads, NR_THREADS);
   }
+
+  free(users.items);
+  free(dict.items);
 
   return 0;
 }
