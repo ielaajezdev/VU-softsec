@@ -622,6 +622,37 @@ int crack_user_basic_username(user_item *user, char *name) {
   return 0;
 }
 
+// More advanced variations
+int crack_user_advanced_username(user_item *user, char *name) {
+  int len = strlen(name);
+  int safe_len = len * 4 + 1;
+  if (len <= 0) {
+    return 0;
+  }
+
+  // Buffer for safe experiments
+  char name_dup[safe_len];
+  strcpy(name_dup, name);
+
+  // Lowercase the name
+  for (int i = 0; i < safe_len; i++) {
+    name_dup[i] = tolower(name_dup[i]);
+  }
+
+  // Try with year suffix
+  char name_experiment[safe_len];
+  for (int i = 0; i < 100; i++) {
+    sprintf(name_experiment, "%s%d", name_dup, i);
+    if (crack_compare_and_print(user, name_experiment) == 1) {
+      return 1;
+    }
+    sprintf(name_experiment, "%s%d", name_dup, 1900 + i);
+    if (crack_compare_and_print(user, name_experiment) == 1) {
+      return 1;
+    }
+  }
+}
+
 // Attempt cracking by basic username variations in a selection
 void *crack_users_basic_username(void *raw_args) {
   crack_user_args *args = (crack_user_args *)raw_args;
