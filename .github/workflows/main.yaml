@@ -36,8 +36,8 @@ jobs:
           fi
         working-directory: assignment-1/submission
       - name: Run assignment 1 on testing data
-        run: python3 ../src/grade.py 'timeout 15m ./guessword testing-passwd.txt testing-shadow.txt' ../src/testing-plain.txt
+        run: python3 ../src/grade.py 'timeout 15m ./guessword ../src/testing-passwd.txt ../src/testing-shadow.txt' ../src/testing-plain.txt
         working-directory: assignment-1/submission
       - name: Run assignment 1 on training data
-        run: python3 ../src/grade.py 'timeout 15m ./guessword training-passwd.txt training-shadow.txt' ../src/training-plain.txt
+        run: python3 ../src/grade.py 'timeout 15m ./guessword ../src/training-passwd.txt ../src/training-shadow.txt' ../src/training-plain.txt
         working-directory: assignment-1/submission
