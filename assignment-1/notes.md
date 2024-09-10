@@ -21,11 +21,11 @@
     - `C-` for G
     - `8` for B
     - `L|` for U
-    # new 
     - `|*` for P
     - `|(` for K
     - `0` for O
     - `(v)` for M
+    - `` for Z
     
     - but this is for names/usernames only
     - for usernames: some are fully caps or mixed case as well

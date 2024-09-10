@@ -19,11 +19,25 @@ jobs:
         run: sudo apt-get install -y build-essential
       - name: Install Python3
         run: sudo apt-get install -y python3
+      - name: Install zip
+        run: sudo apt-get install -y zip
+      - name: Unpack the submission zip
+        run: unzip assignment-1/asg1.zip -d assignment-1/submission
+      - name: Run sanity check on assignment 1
+        run: python3 sanity_check.py asg1.zip
+        working-directory: assignment-1/submission
       - name: Compile assignment 1
-        run: make clean && make all
-        working-directory: Assignment-1/framework
-        env:
-          CC: gcc-9
-      - name: Run assignment 1 tests
-        run: sudo make test
-        working-directory: Assignment-1/framework
+        run: |
+          output=$(make build 2>&1 > /dev/null) || true
+          if [ -n "$output" ]; then
+            echo "Error: Program output to stderr"
+            echo "$output"
+            exit 1
+          fi
+        working-directory: assignment-1/submission
+      - name: Run assignment 1 on testing data
+        run: python3 ../src/grade.py './guessword testing-passwd.txt testing-shadow.txt' testing-plain.txt
+        working-directory: assignment-1/submission
+      - name: Run assignment 1 on training data
+        run: python3 ../src/grade.py './guessword training-passwd.txt training-shadow.txt' training-plain.txt
+        working-directory: assignment-1/submission

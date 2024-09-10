@@ -112,6 +112,18 @@ def variations(word, varied):
                 if vary not in found:
                     found[vary] = 1
                 # variations(vary, True)
+        if word[i] == "z":
+            vary = word[:i] + "~/_" + word[i+1:]
+            if vary != word:
+                if vary not in found:
+                    found[vary] = 1
+                # variations(vary, True)
+        if word[i] == "v":
+            vary = word[:i] + "^" + word[i+1:]
+            if vary != word:
+                if vary not in found:
+                    found[vary] = 1
+                # variations(vary, True)
 
                 
         # try upercasing the letter

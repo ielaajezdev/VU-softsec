@@ -563,7 +563,7 @@ int crack_compare_and_print(user_item *user, char *plain) {
 // Actual cracking functions
 //
 
-// Reusable for many cracking functions
+// Reusable
 typedef struct {
   dictionary *dict;
   user_collection *users;
@@ -622,6 +622,71 @@ int crack_user_basic_username(user_item *user, char *name) {
   return 0;
 }
 
+// Replace
+char *replace_char(char input) {
+  switch (input) {
+  case 'w':
+    return "\\/\\/";
+  case 'a':
+    return "^";
+  case 't':
+    return "-|-";
+  case 'm':
+    return "(v)";
+  case 'o':
+    return "0";
+  case 'h':
+    return "#";
+  case 'c':
+    return "(";
+  case 's':
+    return "5";
+  case 'y':
+    return "i'";
+  case 'g':
+    return "C-";
+  case 'b':
+    return "8";
+  case 'u':
+    return "L|";
+  case 'p':
+    return "|*";
+  case 'k':
+    return "|(";
+  default:
+    return NULL;
+  }
+}
+
+// Permutates a string in place, recursively
+// returns 1 is a permutation cracked a password
+int permutate(user_item *user, char *str, int start) {
+  for (size_t i = start; i < strlen(str); i++) {
+    char replace = str[i];
+    char *res = replace_char(replace);
+    if (res != NULL) {
+      // Create a copy and try with this
+      char dup[strlen(str) * 4 + 1];
+      strncpy(dup, str, i);
+      strcpy(&dup[i], res);
+      if (i + 1 < strlen(str)) {
+        strcpy(&dup[i + strlen(res)], &str[i + 1]);
+      }
+
+      // Try to crack first
+      printf("Trying perm %s\n", dup);
+      if (crack_compare_and_print(user, dup) == 1) {
+        return 1;
+      }
+      if (permutate(user, dup, 0) == 1) {
+        return 1;
+      }
+    }
+  }
+
+  return 0;
+}
+
 // More advanced variations
 int crack_user_advanced_username(user_item *user, char *name) {
   int len = strlen(name);
@@ -641,7 +706,7 @@ int crack_user_advanced_username(user_item *user, char *name) {
 
   // Try with year suffix
   char name_experiment[safe_len];
-  for (int i = 0; i < 100; i++) {
+  for (int i = 40; i < 100; i++) {
     sprintf(name_experiment, "%s%d", name_dup, i);
     if (crack_compare_and_print(user, name_experiment) == 1) {
       return 1;
@@ -651,6 +716,82 @@ int crack_user_advanced_username(user_item *user, char *name) {
       return 1;
     }
   }
+
+  // Try with zorz and xor suffix
+  sprintf(name_experiment, "%sxor", name_dup);
+  if (crack_compare_and_print(user, name_experiment) == 1) {
+    return 1;
+  }
+  sprintf(name_experiment, "%szorz", name_dup);
+  if (crack_compare_and_print(user, name_experiment) == 1) {
+    return 1;
+  }
+
+  // Try with permutations
+  return permutate(user, name_experiment, 0);
+}
+
+// Attempt cracking by advanced username variations in a selection
+void *crack_users_advanced_username(void *raw_args) {
+  crack_user_args *args = (crack_user_args *)raw_args;
+  if (args->user_select.end > args->users->size) {
+    args->user_select.end = args->users->size;
+  }
+  printf("Starting cracking advanced usernames from %d to %d\n",
+         args->user_select.start, args->user_select.end);
+
+  for (int i = args->user_select.start; i < args->user_select.end; i++) {
+    user_item *user = &args->users->items[i];
+
+    // First try with first name
+    int first_name_end = nth_occurrence(' ', user->full_name, 1);
+    int first_name_len = first_name_end;
+    if (first_name_len > 0) {
+      char first_name[first_name_len + 1];
+      strncpy(first_name, user->full_name, first_name_len);
+      first_name[first_name_len] = '\0';
+
+      if (crack_user_advanced_username(user, first_name) == 1) {
+        continue;
+      }
+    }
+
+    // See how many spaces there are, indicates last name/middle name
+    int spaces = count_occurence(' ', user->full_name);
+
+    // Get the last name
+    // Then (if uncracked still and middle name present, try with middle name)
+    int last_name_start = nth_occurrence(' ', user->full_name, spaces) + 1;
+    int last_name_end = strlen(user->full_name);
+    int last_name_len = last_name_end - last_name_start;
+    if (last_name_len > 0) {
+      char last_name[last_name_len + 1];
+      strncpy(last_name, &user->full_name[last_name_start], last_name_len);
+      last_name[last_name_len] = '\0';
+
+      if (crack_user_advanced_username(user, last_name) == 1) {
+        continue;
+      }
+    }
+
+    // Then (if uncracked still and middle name present, try with middle
+    // name)
+    if (spaces == 2) {
+      int middle_name_start = first_name_end + 1;
+      int middle_name_end = nth_occurrence(' ', user->full_name, 2);
+      int middle_name_len = middle_name_end - middle_name_start;
+      if (middle_name_len > 0) {
+        char middle_name[middle_name_len + 1];
+        strncpy(middle_name, &user->full_name[middle_name_start],
+                middle_name_len);
+        middle_name[middle_name_len] = '\0';
+
+        crack_user_advanced_username(user, middle_name);
+      }
+    }
+  }
+
+  return NULL;
 }
 
 // Attempt cracking by basic username variations in a selection
@@ -959,6 +1100,9 @@ int main(int argc, char **argv) {
   if (res > 0) {
     res = load_dictionary("./variations-top250.txt", &dict);
   }
+  // if (res > 0) {
+  //   res = load_dictionary("./unique-plain.txt", &dict);
+  // }
   // ..
 
   if (res <= 0) {
@@ -1106,6 +1250,34 @@ int main(int argc, char **argv) {
   // Crack part 4: try more advanced username variations (with replacements,
   // years of birth)
   //
+
+  printf("Attempting to run advanced variations\n");
+
+  {
+    // Run the username variations in parallel
+    pthread_t crack_basic_threads[NR_THREADS];
+    crack_user_args crack_basic_thread_args[NR_THREADS];
+    for (int i = 0; i < NR_THREADS; i++) {
+      int frac = (users.size / NR_THREADS) + 1;
+      selection s = {
+          .start = i * frac,
+          .end = (i + 1) * frac,
+      };
+
+      crack_basic_thread_args[i].users = &users;
+      crack_basic_thread_args[i].user_select = s;
+      pthread_create(&crack_basic_threads[i], NULL,
+                     crack_users_advanced_username,
+                     &crack_basic_thread_args[i]);
+    }
+    wait_threads(crack_basic_threads, NR_THREADS);
+  }
+  printf("All advanced variations complete\n");
+  size_before = users.size;
+  compress_users(&users);
+  size_now = users.size;
+  total_found = size_before - size_now;
+  printf("(cracked %d with this)\n", total_found);
 
   // Split up the plain word dictionary into 4, so that it can be parallelized
   // int frac = dict_curr / 4;
