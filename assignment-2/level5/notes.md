@@ -1,0 +1,5 @@
+- there is a clear format string vuln when inserting passwords and reading them back again
+- the format string value on the stack starts at index 22 (from inspection with GDB and by leaking memory using the "%p. repeater)
+- because aslr is disabled, the return address is always at the same mem location (if the environment is the same)
+    - this caused a lot of problems, because when compiling to my home directory, the file name put in env was 16 chars long, instead of 23 chars for /var/challenge/level5/5
+    - i renamed my home binary and then inspected the return address again using `gef`, maed this fixed and used pwntools to insert both the fmtstring payload and the shellcode reproducibly
