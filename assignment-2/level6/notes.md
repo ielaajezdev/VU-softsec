@@ -1,0 +1,5 @@
+- with `c` you can set the caloric value for a spice, with a cast creates a BasicIngredient of sibling class Spice (even if the object is not a Spice)
+    - this is a confused type
+- if you do this, you can overwrite the ` char *special_effect;` ptr in a `Spice` object
+    - this pointer is returned when you finish cooking (with `GetSpecialEffect()`), this allows you to read memory from an arbitrary location pointed to
+    - and with `SetSpecialEffect` you can set the special effect to an arbitrary string, which allows you to set the return address to an arbitrary value
