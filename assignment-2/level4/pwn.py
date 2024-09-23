@@ -7,3 +7,10 @@ hex_string = byte_string.hex()
 formatted_hex_string = ''.join(f'\\x{hex_string[i:i+2]}' for i in range(0, len(hex_string), 2))
 
 print(formatted_hex_string)
+
+# This is my shellcode
+shellcode = b'aedkaepodkaed'
+
+# Now write this shellcode as binary to a file
+with open('shellcode.bin', 'wb') as f:
+    f.write(shellcode)

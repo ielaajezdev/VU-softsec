@@ -56,6 +56,7 @@ static void free_list_add(struct entry *entry) {
 
 static void free_list_remove(struct entry *entry) {
 	/* remove reference from previous entry, if any */
+	// this bk-24
 	if (entry->free_prev) {
 		entry->free_prev->free_next = entry->free_next;
 	} else {
@@ -63,6 +64,7 @@ static void free_list_remove(struct entry *entry) {
 	}
 
 	/* remove reference from next entry, if any */
+	// this is fd+16
 	if (entry->free_next) {
 		entry->free_next->free_prev = entry->free_prev;
 	}

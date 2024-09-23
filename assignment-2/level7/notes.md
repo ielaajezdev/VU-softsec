@@ -8,3 +8,7 @@
 
 - subtract enough from $0x8000000abcde to become the return address
 - let the last number of this subtraction be ASCII 5
+
+- shellcode is at 0x7fffffffeec8 + 50
+- need to subtract 0xacde4
+- so need to subtract 708068 in decimal

