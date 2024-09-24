@@ -1,0 +1,15 @@
+# prep
+- compiled binary to my home dir as `8AAAAAAA` so that the environment (containing the binary path) is exactly the same length as the real binary (i.e. len `/var/challenge/level8/8` == len `/home/iel44jez/8AAAAAAA`) so that memory layout/stack locations are the same in GDB as for the real binary
+- created a `pwntools` template
+- used `x/4s *((char **)environ)` in GDB to see where my shellcode is located
+- used GDB with `info frame` to see where the return address is stored (to overwrite)
+
+# exploit notes
+- using `mymalloc` and `myfree`, memory is allocated predictably and reproducibly. Most importantly malloced memory is contiguous so if we can "break out" a malloced areay, we can overwrite in-band metadata for the next malloc block
+    - to do this, first alloc two areas. Free them both and then request a malloc that is the sum of these two areas and the metadata for the second area. 
+    - if there is still a pointer to the second area, we can free this again but with metadata we control
+        - In this case there will always be dangling pointers to freed data because `pair_delete` only clears the memory and frees it, but does not remove it from the global `pairs` array. Even better: this array is always traversed to look for the `key=value` pattern in the `data` field of the `pair` struct, so we can trigger a free as often as we want.
+- the vulnerability is in the merging of free blocks as shown on the slides. We can get control over two blocks, but the first block needs to be valid (and should not have the `IS_LAST` flag, otherwise the merge will stop looking for a next block)
+    - using the `prev` and `next` values in this second block, we can write to any memory address any value (as shown on the slides about this). This is done by the code in `free_list_remove` line 60 but in line 67 the roles are reversed (the "what" to write becomes the "where" to write and vice versa) so this will write somewhere in our shellcode, made sure this is not a problem by adding a relative jump in my shellcode to jump over these bytes that are written
+- 32 bytes before newkey=... starts, the pointer is loaded in memory (so this is where the struct metadata starts)
+- because the `process_cmd` checks only for bytes < 0 we can insert NULL bytes!
