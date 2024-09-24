@@ -1,0 +1,13 @@
+# prep
+- compiled binary to my home dir as `6AAAAAAA` so that the environment (containing the binary path) is exactly the same length as the real binary (i.e. len `/var/challenge/level6/6` == len `/home/iel44jez/6AAAAAAA`) so that memory layout/stack locations are the same in GDB as for the real binary
+- created a `pwntools` template
+- used `x/4s *((char **)environ)` in GDB to see where my shellcode is located
+- used GDB with `info frame` to see where the return address is stored (to overwrite)
+
+# exploit notes
+- with `c` you can set the caloric value for a spice, with a cast creates a BasicIngredient of sibling class Spice (even if the object is not a Spice)
+    - this is a confused type
+- if you do this, you can overwrite the ` char *special_effect;` ptr in a `Spice` object
+    - this pointer is returned when you finish cooking (with `GetSpecialEffect()`), this allows you to read memory from an arbitrary location pointed to
+    - and with `SetSpecialEffect` you can set the special effect to an arbitrary string, which allows you to set any memory location to any string
+        - so set the return address to an arbitrary value

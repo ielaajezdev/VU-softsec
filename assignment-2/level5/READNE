@@ -1,0 +1,10 @@
+# prep
+- compiled binary to my home dir as `5AAAAAAA` so that the environment (containing the binary path) is exactly the same length as the real binary (i.e. len `/var/challenge/level5/5` == len `/home/iel44jez/5AAAAAAA`) so that memory layout/stack locations are the same in GDB as for the real binary
+- created a `pwntools` template
+- used `x/4s *((char **)environ)` in GDB to see where my shellcode is located
+- used GDB with `info frame` to see where the return address is stored (to overwrite)
+
+# exploit notes
+- there is a clear format string vuln when inserting passwords and reading them back again
+- the format string value on the stack starts at index 22 (from inspection with GDB and by leaking memory using the "%p." repeater)
+- used the `pwntools` `fmtstring` utility to craft the formatstring and make sure it overwrites the return address with the shellcode addr in env

