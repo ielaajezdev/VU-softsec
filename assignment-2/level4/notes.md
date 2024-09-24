@@ -1,4 +1,0 @@
-- length check for username is > instead of `>=`, so can append the hostname to the username and overflow buffer
-- need to inject the code through the environment, found the address with gdb but had to use `run.py` to make sure that the environments are the same
-- had to use `pwntools` to create shellcode to execute something
-- created a NOP sled to make the possible addresses that can be executed from the env var easier

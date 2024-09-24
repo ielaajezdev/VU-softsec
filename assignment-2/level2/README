@@ -1,0 +1,1 @@
+- you can alter the path to escape the current directory, go up and run the `l33t` binary (`/` is not in the disallowed chars)

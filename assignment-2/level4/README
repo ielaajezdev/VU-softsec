@@ -1,0 +1,16 @@
+# disclaimer
+- I didn't know pwntools when starting with this level so I made some dumb mistakes, particularly setting the ENV to be reproducible and controllable to the byte took me a lot of time. 
+    - I ended up doing this by first creating shellcode using `pwntools shellcraft` and then writing these bytes to a file called "shellcode.bin"
+    - I would then read "shellcode.bin" using my custom "run.py" script (included in the dumbfiles dir) and add its content to the env that I used to `execve` any program
+    - This way I could run both the binary and GDB with the exact same env
+        - **This was necessary, because GDB would not start through pwntools if I set shellcode in the environment. Only later I found a way around this (and I updated this in the exploit.sh)**
+
+# prep
+- compiled binary to my home dir as `4AAAAAAA` so that the environment (containing the binary path) is exactly the same length as the real binary (i.e. len `/var/challenge/level4/4` == len `/home/iel44jez/4AAAAAAA`) so that memory layout/stack locations are the same in GDB as for the real binary
+- created a `pwntools` template
+- used `x/4s *((char **)environ)` in GDB to see where my shellcode is located
+- used GDB with `info frame` to see where the return address is stored (to overwrite)
+
+# exploit notes
+- length check for username is > instead of `>=`, so can append the hostname to the username and overflow buffer
+- `strcat` will just happily append to the buffer, so we can overwrite the return addr for main
