@@ -1,0 +1,5 @@
+- this is a string conversion vuln
+- the checkadmin will always be false (contradiction) but it is only invoked if the selected number is 2 or 3 (this is the enum)
+- but the user can insert an unsigned long. So insert a value that represents 3 when truncated to a uint8_t but is not 3 (for the check)
+- so start the program and enter `3843`, you will get a shell
+    - hex: 0xF03
