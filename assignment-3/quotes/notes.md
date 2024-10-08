@@ -1,5 +1,0 @@
-- add quote reads more than size of buffer
-- can overflow quote buffer in `new_user_quote` to overflow return address. Ret addr is 0x428 = 1064 bytes after `quote` buffer and we can read 2048 bytes into this buffer
-- libc base is given when `_REAL_LD_SHOW_AUXV` set to 1 in env
-    - actually ld.so base, but subtract 0x1fc000 from this and you get libc base (from `info proc mappings` in GDB)
-    - then use only libc for ropping

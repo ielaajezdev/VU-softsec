@@ -1,6 +1,0 @@
-- `  if (get_string_from_user(USERNAME_BUFFER_SIZE, info.password) < 0) {` allows copying a large buffer (64 chars) to the small pw buffer, ready for a buffer overflow
-    - we can overwrite the return address, it is 40 bytes after the start of `info.password`
-        - but it is canary-protected
-    - we can also overwrite `&plugin.authenticate_admin`, to set it to the address of the start_admin_mode function, 
-        - `&plugin.authenticate_admin` is stored 56 bytes after the start of `info.password` which is perfect, because we can overwrite it with the last 8 bytes of "username" input
-        - overwrite it with the GOT entry of `test_start_admin_console()`

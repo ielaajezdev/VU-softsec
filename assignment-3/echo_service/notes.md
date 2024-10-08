@@ -1,3 +1,0 @@
-- return addr is 40 bytes behind the buffer, can be overwritten bc we can write 200 bytes in a 16-byte buffer
-- stack canary is 24 bytes behind the buffer, need to brute-force byte by byte
-- need to not point the return address to `admin_console` but a few operations later (the first `LEA`) to avoid going to the subtraction of 8 bytes from RSP (which will cause misalignment in the system() call)
