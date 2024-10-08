@@ -1,0 +1,18 @@
+# notes
+- shadow stack is the challenge, is truly random but can use EAP to allocate arbitrary sizes to check if they can be allocated mmap uses `MAP_ANONYMOUS` which means that memory is not backed by physical page, can allocate terabytes without actually using it -> can find the largest possible size
+    - can attack information hiding using the EAP technique from the slides, used the `deduce` algorithm to binary search (from the Usenix paper) https://www.usenix.org/system/files/conference/usenixsecurity16/sec16_paper_oikonomopoulos.pdf
+    - the final bit of entropy is found using a PAP in the slides, but not possible in this program, it is known that the last address byte of the shadow stack is 0x00, so if this is the case for the largest hole found, we know that vmmap_minaddr + largest_hole_size is where the shadow stack is. Right in about 50% of the cases, just rerun if it does not work
+- can read/write to almost arbitrary memory using indices for the fortune message
+    - can even set negative indices! nice
+
+- now know where shadow stack is, but need to build a rop chain, PIE is enabled so need to leak a libc pointer
+    - needed memory inspection to check for patterns, did this with GDB and python scripting. Would break at `dispatch` and then do `source gdblibc.py`
+        - found that messages[-118] until [-122] are often pointers to `main_arena`, used to leak libc base. Not always the case to but the program will tell (null) otherwise so can try safely, often need to run a couple of times to find these arena pointers
+
+- now have libc base but not trivial to write memory to an arbitrary location (even though we can use any index) because the array is an array of pointers
+    - to write to an arbitrary location, first need to set the pointer and then write on the array entry that points to it
+    - needed memory inspection to find array components that point to other array components (chose the first component for convenience), to set the addr and value
+        - found that messages[-2] points to messages[0] using break at `dispatch` and then `source heapfind.py`. Almost always the case
+        - to write A to X, set messages[-2]->message to X and then set messages[0]-> to A, can use this to write any non-null bytes
+            - null bytes are not a problem for shadow stack because we do +24 (this is where main return address is) but it is annoying because the rop chain needs to be written pointer for pointer
+        - but this can also be used to read the address of messages[0] which is on the stack so even in PIE has a fixed offset to the return address of main (0x108 bytes), now we can overwrite the shadow stack ret addr and the actual return addr

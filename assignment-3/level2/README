@@ -1,0 +1,6 @@
+# notes
+- this is an int casting vuln
+- the checkadmin will always be false (contradiction) but it is only invoked if the selected number is 2 or 3 (this is the enum)
+- but can insert an unsigned long. So insert a value that represents 3 when truncated to a uint8_t but is not 3 (for the check)
+- so start the program and enter `3843`, gets a shell
+    - hex: 0xF03 (the 0xF is discarded when used at uint8_t, will be 0x3 -> shell)

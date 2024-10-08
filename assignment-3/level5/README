@@ -1,0 +1,15 @@
+# notes
+- can overwrite outside the diary array with an index > 7 (not negative)
+- want to set the return address to system in libc, but don't know where libc is
+- first make puts print its own GOT pointer with a small rop chain, then read this pointer and calculate the base of libc with it
+- then return to system in libc
+
+- in `add_entry`, the `diary` entry is past the the return address, we can't set negative indices so we can't overwrite the return address from `add_entry`
+    - because we can set an index > 7 we can also read memory out of the array, canary fits beautifully in timestamp, nice
+    - try this with `view_entry` -> also return addr before &entry
+    - but not for main of course, the return address is 0x238 bytes behind &entry
+        - with a Entry struct of 8 + 60 + 1 = 69 bytes, this is 0x238 / 69 = 8.2 structs away
+            - so need to write at struct with index 8, write  0x238 % 69 = 16 garbage bytes followed by the return address (the rop chain)
+            - the first 8 bytes of these 16 bytes are actually the `entry.timestamp` bytes, so we need to write to `entry.content` of 8 garbage bytes + rop chain
+            - the first 8 bytes are the canary which we need to preserve, so first need to `view_entry`
+- program would segfault on movaps instruction due to stack misalignment, added `rop2.call(rop2.ret)` to rop chain
