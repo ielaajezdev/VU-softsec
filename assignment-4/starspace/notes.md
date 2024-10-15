@@ -1,0 +1,1 @@
+- the auth_token cookie is used for authorization, can just set admin to true, base64 encode it and then send it to the server with the next request (the client can control the cookie content)

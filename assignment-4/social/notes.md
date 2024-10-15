@@ -1,0 +1,14 @@
+- many things tried, first see if I can upload PHP code, SSI code or any executables for a web shell
+    - even tried with exfitool, executable code as metadata, appending bytes, nothing works
+    - seems to be a Python flask server, PHP probably does not work anyway
+    - tried to upload very small image, see that it got resized. JPGs get converted to PNG
+    - tried to use username to make things executable, does not work
+- tried to upload SVG. This is supported. Tried SVG XXE from Portswigger: https://portswigger.net/web-security/xxe/lab-xxe-via-file-upload
+    - can see text! but is wrapped with lorem ipsum. leuk. image is cropped so can only see very small part of the text. heel leuk
+    - tried to load the text to a requestbin by using external DTDs, loading external images, etc. all blocked
+    - there probably is a better way, but let's bruteforce it then. Use OCR in python to help automate, use cookies from existing session in browser
+        - this works, find the flag in ~ 16 images, print multiple (shifted lines) per image
+        - got the flag, but does not work? 
+            - oh OCR interprets the I as l. leuk
+
+- honestly, to really see my progress, my uploaded images tell it all

