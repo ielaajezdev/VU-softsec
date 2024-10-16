@@ -1,0 +1,3 @@
+curl -b "session=eyJfZnJlc2giOmZhbHNlfQ.Zwz_zw.P_MmKmtUiY_88AWgOmvNZb2OVYQ" -o download.bin http://websec.vusec.net:62499/21bBqQM0/picture/small5
+curl -b "session=eyJfZnJlc2giOmZhbHNlfQ.Zwz_zw.P_MmKmtUiY_88AWgOmvNZb2OVYQ" -o flag.png http://websec.vusec.net:62499/21bBqQM0/picture/abcdef
+

